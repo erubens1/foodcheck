@@ -14,6 +14,10 @@ const dom = {
   video: document.querySelector("#videoPreview"),
   scannerFrame: document.querySelector("#scannerFrame"),
   cameraEmpty: document.querySelector("#cameraEmpty"),
+  cameraResultOverlay: document.querySelector("#cameraResultOverlay"),
+  cameraResultLabel: document.querySelector("#cameraResultLabel"),
+  cameraResultTitle: document.querySelector("#cameraResultTitle"),
+  cameraResultReason: document.querySelector("#cameraResultReason"),
   manualForm: document.querySelector("#manualForm"),
   barcodeInput: document.querySelector("#barcodeInput"),
   sampleProduct: document.querySelector("#sampleProduct"),
@@ -250,6 +254,7 @@ async function startScanner() {
   }
 
   await stopScanner();
+  hideCameraResult();
   setStatus("Starting camera...");
   dom.startScan.disabled = true;
 
@@ -459,6 +464,7 @@ function renderLoadingResult(code) {
   setResultStatus("idle");
   dom.resultHeadline.textContent = "Looking up product";
   dom.resultReason.textContent = `Barcode ${code}`;
+  showCameraResult("idle", "Checking", "Looking up product", `Barcode ${code}`);
   dom.productSummary.classList.add("hidden");
   dom.checkList.innerHTML = "";
 }
@@ -468,6 +474,7 @@ function renderErrorResult(code, message) {
   setResultStatus("yellow");
   dom.resultHeadline.textContent = "Not enough data";
   dom.resultReason.textContent = `${message} Barcode ${code} can still be checked against the package label.`;
+  showCameraResult("yellow", "Not great", "Not enough data", `${message} Check the package label.`);
   dom.productSummary.classList.add("hidden");
   dom.checkList.innerHTML = "";
 }
@@ -478,6 +485,12 @@ function renderProductResult(product, evaluation) {
   setResultStatus(evaluation.status);
   dom.resultHeadline.textContent = `${statusText} for selected profiles`;
   dom.resultReason.textContent = evaluation.summary;
+  showCameraResult(
+    evaluation.status,
+    statusText,
+    product.product_name || product.generic_name || "Product checked",
+    evaluation.summary
+  );
 
   const image = product.image_front_small_url || product.image_front_url || product.image_url || "";
   if (image) {
@@ -511,6 +524,7 @@ function refreshActiveEvaluation() {
     const selectedCount = state.selectedProfiles.size || defaultProfiles.length;
     dom.confidencePill.textContent = "No scan";
     dom.resultReason.textContent = `${selectedCount} profile${selectedCount === 1 ? "" : "s"} selected.`;
+    hideCameraResult();
     return;
   }
   renderProductResult(state.activeProduct, evaluateProduct(state.activeProduct));
@@ -1376,6 +1390,18 @@ function dataQualityLabel(ctx) {
 function setResultStatus(status) {
   dom.resultCard.classList.remove("status-idle", "status-red", "status-yellow", "status-green");
   dom.resultCard.classList.add(`status-${status}`);
+}
+
+function showCameraResult(status, label, title, reason) {
+  dom.cameraResultOverlay.classList.remove("hidden", "status-idle", "status-red", "status-yellow", "status-green");
+  dom.cameraResultOverlay.classList.add(`status-${status}`);
+  dom.cameraResultLabel.textContent = label;
+  dom.cameraResultTitle.textContent = title;
+  dom.cameraResultReason.textContent = reason;
+}
+
+function hideCameraResult() {
+  dom.cameraResultOverlay.classList.add("hidden");
 }
 
 function addHistory(product, evaluation) {

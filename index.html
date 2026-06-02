@@ -26,6 +26,14 @@
             <span></span>
           </div>
           <div class="camera-empty" id="cameraEmpty">Camera idle</div>
+          <div class="camera-result-overlay hidden status-idle" id="cameraResultOverlay" role="status" aria-live="polite">
+            <span class="camera-result-signal" aria-hidden="true"></span>
+            <div class="camera-result-copy">
+              <p id="cameraResultLabel">Waiting</p>
+              <h2 id="cameraResultTitle">Scan a barcode</h2>
+              <p id="cameraResultReason">Pick profiles, then scan or enter a product barcode.</p>
+            </div>
+          </div>
         </div>
 
         <div class="scanner-controls">
@@ -55,17 +63,6 @@
         </div>
 
         <p class="status-strip" id="statusText" role="status" aria-live="polite">Ready</p>
-      </section>
-
-      <section class="panel preferences-panel" aria-labelledby="profiles-title">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">Dietary profile</p>
-            <h2 id="profiles-title">Profiles</h2>
-          </div>
-          <button class="text-button" type="button" id="resetProfiles">Reset</button>
-        </div>
-        <div class="profile-groups" id="profileGroups"></div>
       </section>
 
       <section class="panel result-panel" aria-labelledby="result-title">
@@ -103,6 +100,17 @@
           FoodLight uses label data from Open Food Facts. Always confirm packaging for allergies,
           medical diets, gut symptom plans, athlete certification, and religious certification.
         </p>
+      </section>
+
+      <section class="panel preferences-panel" aria-labelledby="profiles-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Dietary profile</p>
+            <h2 id="profiles-title">Profiles</h2>
+          </div>
+          <button class="text-button" type="button" id="resetProfiles">Reset</button>
+        </div>
+        <div class="profile-groups" id="profileGroups"></div>
       </section>
 
       <section class="panel history-panel" aria-labelledby="history-title">

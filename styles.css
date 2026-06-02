@@ -203,6 +203,71 @@ h3 {
   display: none;
 }
 
+.camera-result-overlay {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24);
+  padding: 10px;
+  color: var(--ink);
+}
+
+.camera-result-signal {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--muted);
+  margin-top: 4px;
+}
+
+.camera-result-overlay.status-red .camera-result-signal {
+  background: var(--red);
+  box-shadow: 0 0 14px rgba(216, 66, 58, 0.65);
+}
+
+.camera-result-overlay.status-yellow .camera-result-signal {
+  background: var(--yellow);
+  box-shadow: 0 0 14px rgba(238, 179, 29, 0.65);
+}
+
+.camera-result-overlay.status-green .camera-result-signal {
+  background: var(--green);
+  box-shadow: 0 0 14px rgba(22, 138, 95, 0.58);
+}
+
+.camera-result-copy {
+  min-width: 0;
+}
+
+.camera-result-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.camera-result-copy h2 {
+  margin: 2px 0 3px;
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+.camera-result-copy #cameraResultReason {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .scanner-controls,
 .quick-actions {
   display: flex;
