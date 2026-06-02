@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f7f8fb">
+    <title>FoodLight Scanner</title>
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="scanner-panel" aria-labelledby="app-title">
+        <header class="top-bar">
+          <div>
+            <p class="eyebrow">Supermarket scan</p>
+            <h1 id="app-title">FoodLight</h1>
+          </div>
+          <div class="mini-badge">Open Food Facts</div>
+        </header>
+
+        <div class="scanner-frame" id="scannerFrame">
+          <video id="videoPreview" playsinline muted></video>
+          <div class="scan-overlay" aria-hidden="true">
+            <span></span>
+          </div>
+          <div class="camera-empty" id="cameraEmpty">Camera idle</div>
+        </div>
+
+        <div class="scanner-controls">
+          <button class="button button-primary" type="button" id="startScan">Start scanner</button>
+          <button class="button button-secondary" type="button" id="stopScan">Stop</button>
+        </div>
+
+        <form class="manual-form" id="manualForm">
+          <label for="barcodeInput">Manual barcode</label>
+          <div class="input-row">
+            <input
+              id="barcodeInput"
+              name="barcode"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              pattern="[0-9]{6,14}"
+              placeholder="3017620422003"
+            >
+            <button class="button button-secondary" type="submit">Check</button>
+          </div>
+        </form>
+
+        <div class="quick-actions">
+          <button class="text-button" type="button" id="sampleProduct">Sample product</button>
+          <button class="text-button" type="button" id="clearHistory">Clear history</button>
+        </div>
+
+        <p class="status-strip" id="statusText" role="status" aria-live="polite">Ready</p>
+      </section>
+
+      <section class="panel preferences-panel" aria-labelledby="profiles-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Dietary profile</p>
+            <h2 id="profiles-title">Profiles</h2>
+          </div>
+          <button class="text-button" type="button" id="resetProfiles">Reset</button>
+        </div>
+        <div class="profile-groups" id="profileGroups"></div>
+      </section>
+
+      <section class="panel result-panel" aria-labelledby="result-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Traffic light</p>
+            <h2 id="result-title">Result</h2>
+          </div>
+          <div class="confidence-pill" id="confidencePill">No scan</div>
+        </div>
+
+        <article class="result-card status-idle" id="resultCard">
+          <div class="traffic-light" aria-hidden="true">
+            <span class="light red"></span>
+            <span class="light yellow"></span>
+            <span class="light green"></span>
+          </div>
+          <div class="result-copy">
+            <h3 id="resultHeadline">Waiting for a barcode</h3>
+            <p id="resultReason">Pick profiles, then scan or enter a product barcode.</p>
+          </div>
+        </article>
+
+        <div class="product-summary hidden" id="productSummary">
+          <img alt="" id="productImage">
+          <div>
+            <h3 id="productName"></h3>
+            <p id="productMeta"></p>
+          </div>
+        </div>
+
+        <div class="check-list" id="checkList"></div>
+
+        <p class="fine-print">
+          FoodLight uses label data from Open Food Facts. Always confirm packaging for allergies,
+          medical diets, and religious certification.
+        </p>
+      </section>
+
+      <section class="panel history-panel" aria-labelledby="history-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Recent</p>
+            <h2 id="history-title">Scans</h2>
+          </div>
+        </div>
+        <div class="history-list" id="historyList"></div>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

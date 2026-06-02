@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="FoodLight">
+  <rect width="256" height="256" rx="36" fill="#f7f8fb"/>
+  <rect x="72" y="28" width="112" height="200" rx="56" fill="#172033"/>
+  <circle cx="128" cy="76" r="27" fill="#d8423a"/>
+  <circle cx="128" cy="128" r="27" fill="#eeb31d"/>
+  <circle cx="128" cy="180" r="27" fill="#168a5f"/>
+</svg>
