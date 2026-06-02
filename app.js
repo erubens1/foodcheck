@@ -75,6 +75,48 @@ const profiles = [
     evaluate: evaluateLowSugar
   },
   {
+    id: "low-fodmap",
+    group: "Gut health",
+    label: "Low FODMAP",
+    evaluate: evaluateLowFodmap
+  },
+  {
+    id: "lactose-sensitive",
+    group: "Gut health",
+    label: "Lactose sensitive",
+    evaluate: evaluateLactoseSensitive
+  },
+  {
+    id: "reflux-aware",
+    group: "Gut health",
+    label: "Reflux aware",
+    evaluate: evaluateRefluxAware
+  },
+  {
+    id: "sensitive-gut-additives",
+    group: "Gut health",
+    label: "Sensitive gut additives",
+    evaluate: evaluateSensitiveGutAdditives
+  },
+  {
+    id: "fiber-support",
+    group: "Gut health",
+    label: "Fiber support",
+    evaluate: evaluateFiberSupport
+  },
+  {
+    id: "informed-certified",
+    group: "Athlete certifications",
+    label: "INFORMED certified",
+    evaluate: evaluateInformedCertified
+  },
+  {
+    id: "nsf-sport-certified",
+    group: "Athlete certifications",
+    label: "NSF Certified for Sport",
+    evaluate: evaluateNsfSportCertified
+  },
+  {
     id: "halal",
     group: "Religious",
     label: "Halal",
@@ -142,6 +184,7 @@ const productFields = [
   "generic_name",
   "brands",
   "quantity",
+  "labels",
   "image_front_small_url",
   "image_front_url",
   "image_url",
@@ -521,9 +564,11 @@ function createContext(product) {
   const additives = arrayify(product.additives_tags);
   const analysis = arrayify(product.ingredients_analysis_tags);
   const ingredientText = [
+    product.labels,
     product.ingredients_text_en,
     product.ingredients_text,
     product.generic_name,
+    product.brands,
     product.product_name
   ]
     .filter(Boolean)
@@ -656,6 +701,159 @@ function evaluateLowSugar(ctx) {
     return result("yellow", `Sugars are moderate at ${formatNumber(sugar)} g per 100 g.`);
   }
   return result("green", `Sugars are low at ${formatNumber(sugar)} g per 100 g.`);
+}
+
+function evaluateLowFodmap(ctx) {
+  if (hasLabel(ctx, ["low-fodmap", "fodmap-friendly", "monash-low-fodmap-certified"])) {
+    return result("green", "Marked low FODMAP; still check the serving size on the package.");
+  }
+  if (!ctx.hasIngredients) {
+    return result("yellow", "Ingredient data is missing, and FODMAP checks depend on ingredients and serving size.");
+  }
+
+  const likelyHigh = findSignals(ctx, lowFodmapLikelyHighTerms);
+  if (likelyHigh.length) {
+    return result("red", `Likely high-FODMAP ingredient found: ${formatSignalList(likelyHigh)}. Serving size can still change tolerance.`);
+  }
+
+  const portionDependent = findSignals(ctx, lowFodmapPortionTerms);
+  if (portionDependent.length) {
+    return result("yellow", `Potential FODMAP or portion-dependent term found: ${formatSignalList(portionDependent)}.`);
+  }
+
+  return result("green", "No common high-FODMAP ingredient was found in the available data; this is not a certified low-FODMAP result.");
+}
+
+function evaluateLactoseSensitive(ctx) {
+  if (hasLabel(ctx, ["lactose-free"])) {
+    return result("green", "Marked lactose-free.");
+  }
+  if (hasTrace(ctx, ["milk", "lactose"])) {
+    return result("yellow", "May contain traces of milk or lactose.");
+  }
+  if (!ctx.hasIngredients) {
+    return result("yellow", "Ingredient data is missing.");
+  }
+
+  const likelyLactose = findSignals(ctx, lactoseLikelyTerms);
+  if (likelyLactose.length) {
+    return result("red", `Likely lactose source found: ${formatSignalList(likelyLactose)}.`);
+  }
+
+  const variableLactose = findSignals(ctx, lactoseCautionTerms);
+  if (variableLactose.length) {
+    return result("yellow", `Dairy-derived or variable-lactose term found: ${formatSignalList(variableLactose)}.`);
+  }
+
+  return result("green", "No obvious lactose source was found in the available ingredient data.");
+}
+
+function evaluateRefluxAware(ctx) {
+  const fat = numberOrNull(ctx.nutriments.fat_100g);
+  const satFat = numberOrNull(ctx.nutriments["saturated-fat_100g"]);
+  const triggers = findSignals(ctx, refluxTriggerTerms);
+
+  if (hasAlcohol(ctx)) {
+    return result("red", "Alcohol is listed, which is a common reflux trigger.");
+  }
+  if (fat !== null && fat >= 17.5) {
+    return result("red", `High fat at ${formatNumber(fat)} g per 100 g, and high-fat foods are common reflux triggers.`);
+  }
+  if (triggers.length >= 2) {
+    return result("red", `Multiple common reflux triggers found: ${formatSignalList(triggers)}.`);
+  }
+  if (triggers.length) {
+    return result("yellow", `Common reflux trigger found: ${formatSignalList(triggers)}.`);
+  }
+  if ((fat !== null && fat >= 8) || (satFat !== null && satFat >= 5)) {
+    return result("yellow", "Fat content is elevated, which may bother reflux-sensitive shoppers.");
+  }
+  if (!ctx.hasIngredients && !ctx.hasNutrition) {
+    return result("yellow", "Ingredient and nutrition data are missing.");
+  }
+
+  return result("green", "No common reflux trigger was found in the available data.");
+}
+
+function evaluateSensitiveGutAdditives(ctx) {
+  if (!ctx.hasIngredients) {
+    return result("yellow", "Ingredient data is missing.");
+  }
+
+  const strongTriggers = findSignals(ctx, sensitiveGutStrongTerms);
+  if (strongTriggers.length) {
+    return result("red", `Gut-sensitive sweetener or added fermentable fiber found: ${formatSignalList(strongTriggers)}.`);
+  }
+
+  const cautionTriggers = findSignals(ctx, sensitiveGutCautionTerms);
+  if (cautionTriggers.length) {
+    return result("yellow", `Additive or sweetener that may bother sensitive guts found: ${formatSignalList(cautionTriggers)}.`);
+  }
+
+  return result("green", "No common sensitive-gut additive trigger was found in the available ingredient data.");
+}
+
+function evaluateFiberSupport(ctx) {
+  const fiber = numberOrNull(ctx.nutriments.fiber_100g);
+  const fiberSignals = findSignals(ctx, fiberSupportTerms);
+
+  if (fiber !== null) {
+    if (fiber >= 6) {
+      return result("green", `High fiber at ${formatNumber(fiber)} g per 100 g.`);
+    }
+    if (fiber >= 3) {
+      return result("yellow", `Moderate fiber at ${formatNumber(fiber)} g per 100 g.`);
+    }
+    return result("red", `Low fiber at ${formatNumber(fiber)} g per 100 g.`);
+  }
+
+  if (fiberSignals.length) {
+    return result("yellow", `Fiber-supporting ingredient found, but nutrition fiber data is missing: ${formatSignalList(fiberSignals)}.`);
+  }
+
+  return result("yellow", "Fiber data is missing, so gut fiber support cannot be confirmed.");
+}
+
+function evaluateInformedCertified(ctx) {
+  const certifications = findSignals(ctx, informedCertificationTerms);
+  if (certifications.length) {
+    return result("green", `INFORMED certification signal found: ${formatSignalList(certifications)}. Verify the product and batch in the official directory.`);
+  }
+
+  if (hasAnySignal(ctx, ["informed"])) {
+    return result("yellow", "INFORMED is mentioned, but Informed Sport or Informed Choice certification is not clear.");
+  }
+
+  if (isSportsSupplement(ctx)) {
+    return result("yellow", "Sports supplement or performance product detected, but no INFORMED certification is shown in the available data.");
+  }
+
+  if (!ctx.hasIngredients) {
+    return result("yellow", "Product label data is sparse, so INFORMED certification cannot be confirmed.");
+  }
+
+  return result("yellow", "No Informed Sport or Informed Choice certification is shown in the available product data.");
+}
+
+function evaluateNsfSportCertified(ctx) {
+  const certifications = findSignals(ctx, nsfSportCertificationTerms);
+  if (certifications.length) {
+    return result("green", `NSF Certified for Sport signal found: ${formatSignalList(certifications)}. Verify the product in the official NSF directory.`);
+  }
+
+  if (hasAnySignal(ctx, ["nsf"])) {
+    return result("yellow", "NSF is mentioned, but NSF Certified for Sport is not clear.");
+  }
+
+  if (isSportsSupplement(ctx)) {
+    return result("yellow", "Sports supplement or performance product detected, but NSF Certified for Sport is not shown in the available data.");
+  }
+
+  if (!ctx.hasIngredients) {
+    return result("yellow", "Product label data is sparse, so NSF Certified for Sport cannot be confirmed.");
+  }
+
+  return result("yellow", "No NSF Certified for Sport certification is shown in the available product data.");
 }
 
 function evaluateHalal(ctx) {
@@ -825,6 +1023,220 @@ const porkTerms = ["pork", "ham", "bacon", "lard", "prosciutto", "pepperoni", "c
 const alcoholTerms = ["alcohol", "wine", "beer", "rum", "brandy", "liqueur", "liquor", "whisky", "whiskey", "bourbon"];
 const shellfishTerms = ["shrimp", "prawn", "crab", "lobster", "oyster", "clam", "mussel", "scallop", "shellfish"];
 const animalCautionTerms = ["gelatin", "gelatine", "rennet", "collagen", "animal-fat", "beef", "chicken", "meat", "fish"];
+const lowFodmapLikelyHighTerms = [
+  "garlic",
+  "garlic-powder",
+  "garlic-salt",
+  "onion",
+  "onion-powder",
+  "onion-salt",
+  "shallot",
+  "leek",
+  "inulin",
+  "chicory",
+  "chicory-root",
+  "fructo-oligosaccharide",
+  "fructooligosaccharide",
+  "oligofructose",
+  "honey",
+  "agave",
+  "high-fructose-corn-syrup",
+  "fructose",
+  "apple",
+  "pear",
+  "mango",
+  "watermelon",
+  "cherry",
+  "cherries",
+  "apricot",
+  "peach",
+  "nectarine",
+  "plum",
+  "prune",
+  "fig",
+  "date",
+  "raisin",
+  "dried-fruit",
+  "artichoke",
+  "asparagus",
+  "cauliflower",
+  "mushroom",
+  "brussels-sprout",
+  "cabbage",
+  "lentil",
+  "chickpea",
+  "chick-pea",
+  "hummus",
+  "falafel",
+  "kidney-bean",
+  "black-bean",
+  "pinto-bean",
+  "cannellini",
+  "lima-bean",
+  "soybean",
+  "soy-bean",
+  "split-pea",
+  "cashew",
+  "pistachio",
+  "sorbitol",
+  "mannitol",
+  "xylitol",
+  "maltitol",
+  "isomalt",
+  "lactitol"
+];
+const lowFodmapPortionTerms = [
+  "wheat",
+  "rye",
+  "barley",
+  "spelt",
+  "milk",
+  "lactose",
+  "yogurt",
+  "yoghurt",
+  "soft-cheese",
+  "cream",
+  "ice-cream",
+  "fruit-juice",
+  "juice-concentrate",
+  "molasses",
+  "erythritol",
+  "green-pea",
+  "peas",
+  "beans",
+  "natural-flavour",
+  "natural-flavor",
+  "spices",
+  "seasoning",
+  "sauce",
+  "marinade"
+];
+const lactoseLikelyTerms = [
+  "lactose",
+  "milk",
+  "milk-powder",
+  "dry-milk",
+  "condensed-milk",
+  "evaporated-milk",
+  "yogurt",
+  "yoghurt",
+  "ice-cream",
+  "whey",
+  "curds",
+  "cottage-cheese",
+  "ricotta"
+];
+const lactoseCautionTerms = ["cream", "cheese", "butter", "casein", "caseinate", "milk-solids"];
+const refluxTriggerTerms = [
+  "coffee",
+  "caffeine",
+  "cola",
+  "energy-drink",
+  "chocolate",
+  "cocoa",
+  "mint",
+  "peppermint",
+  "spearmint",
+  "tomato",
+  "citrus",
+  "orange",
+  "lemon",
+  "lime",
+  "grapefruit",
+  "chili",
+  "chilli",
+  "jalapeno",
+  "hot-sauce",
+  "capsaicin",
+  "spicy"
+];
+const sensitiveGutStrongTerms = [
+  "sorbitol",
+  "mannitol",
+  "xylitol",
+  "maltitol",
+  "isomalt",
+  "lactitol",
+  "inulin",
+  "chicory",
+  "chicory-root",
+  "fructo-oligosaccharide",
+  "fructooligosaccharide",
+  "oligofructose"
+];
+const sensitiveGutCautionTerms = [
+  "erythritol",
+  "sucralose",
+  "aspartame",
+  "acesulfame",
+  "saccharin",
+  "stevia",
+  "carrageenan",
+  "xanthan-gum",
+  "guar-gum",
+  "locust-bean-gum",
+  "gellan-gum",
+  "cellulose-gum",
+  "carboxymethylcellulose",
+  "polysorbate-80",
+  "mono-and-diglycerides"
+];
+const fiberSupportTerms = [
+  "fiber",
+  "fibre",
+  "whole-grain",
+  "wholegrain",
+  "oat",
+  "oats",
+  "bran",
+  "psyllium",
+  "chia",
+  "flaxseed",
+  "linseed",
+  "beans",
+  "lentil",
+  "chickpea"
+];
+const informedCertificationTerms = [
+  "informed-sport",
+  "informed-choice",
+  "informed-protein",
+  "informed-ingredient",
+  "informed-certified",
+  "informed-certification",
+  "certified-by-informed",
+  "lgc-informed"
+];
+const nsfSportCertificationTerms = [
+  "nsf-certified-for-sport",
+  "certified-for-sport",
+  "nsf-sport",
+  "nsfsport",
+  "nsf-certified-sport",
+  "certified-by-nsf-for-sport"
+];
+const sportsSupplementTerms = [
+  "supplement",
+  "dietary-supplement",
+  "sports-nutrition",
+  "protein-powder",
+  "protein-bar",
+  "nutrition-bar",
+  "pre-workout",
+  "post-workout",
+  "creatine",
+  "bcaa",
+  "amino-acid",
+  "electrolyte",
+  "hydration",
+  "energy-drink",
+  "collagen",
+  "multivitamin",
+  "vitamin",
+  "minerals",
+  "ergogenic",
+  "whey-protein"
+];
 const veganRedTerms = [
   ...animalCautionTerms,
   "milk",
@@ -895,6 +1307,23 @@ function hasAnySignal(ctx, terms) {
   ];
   return searchableTags.some(tag => terms.some(term => normalizedIncludes(tag, term))) ||
     terms.some(term => containsWholeishTerm(ctx.text, term));
+}
+
+function isSportsSupplement(ctx) {
+  return hasAnySignal(ctx, sportsSupplementTerms);
+}
+
+function findSignals(ctx, terms, limit = 3) {
+  const matches = [];
+  terms.forEach(term => {
+    if (matches.length >= limit) {
+      return;
+    }
+    if (hasAnySignal(ctx, [term])) {
+      matches.push(formatTerm(term));
+    }
+  });
+  return [...new Set(matches)];
 }
 
 function getSaltPer100g(ctx) {
@@ -1033,6 +1462,14 @@ function numberOrNull(value) {
 
 function formatNumber(value) {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value);
+}
+
+function formatSignalList(items) {
+  return items.slice(0, 3).join(", ");
+}
+
+function formatTerm(term) {
+  return String(term || "").replace(/-/g, " ");
 }
 
 function groupBy(items, getKey) {

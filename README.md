@@ -1,6 +1,6 @@
 # FoodLight Scanner
 
-FoodLight is a quick mobile web app for supermarket barcode checks. It scans or accepts a barcode, looks up the product in Open Food Facts, then returns a red/yellow/green result with reasons for selected health, religious, and personal dietary profiles.
+FoodLight is a quick mobile web app for supermarket barcode checks. It scans or accepts a barcode, looks up the product in Open Food Facts, then returns a red/yellow/green result with reasons for selected health, gut health, athlete certification, religious, and personal dietary profiles.
 
 ## Run locally
 
@@ -32,3 +32,7 @@ For phone camera access, use the published HTTPS GitHub Pages URL. Local files a
 ## Data source
 
 Product data comes from the Open Food Facts product API. The app uses the available label, ingredient, allergen, trace, nutrition, Nutri-Score, NOVA, and ingredient-analysis fields. Missing or incomplete data is treated cautiously.
+
+Low FODMAP and other gut-health checks are best-effort ingredient screens. They are not medical advice, certified low-FODMAP testing, or a substitute for package labels and clinician/dietitian guidance.
+
+Athlete certification checks look for label-data signals for Informed Sport, Informed Choice, and NSF Certified for Sport. For drug-tested athletes, always verify the exact product and batch in the official certification directory before use.
