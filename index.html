@@ -41,22 +41,6 @@
           <button class="button button-secondary" type="button" id="stopScan">Stop</button>
         </div>
 
-        <form class="manual-form" id="manualForm">
-          <label for="barcodeInput">Manual barcode</label>
-          <div class="input-row">
-            <input
-              id="barcodeInput"
-              name="barcode"
-              type="text"
-              inputmode="numeric"
-              autocomplete="off"
-              pattern="[0-9]{6,14}"
-              placeholder="3017620422003"
-            >
-            <button class="button button-secondary" type="submit">Check</button>
-          </div>
-        </form>
-
         <div class="quick-actions">
           <button class="text-button" type="button" id="sampleProduct">Sample product</button>
           <button class="text-button" type="button" id="clearHistory">Clear history</button>
@@ -111,6 +95,21 @@
           <button class="text-button" type="button" id="resetProfiles">Reset</button>
         </div>
         <div class="profile-groups" id="profileGroups"></div>
+        <form class="manual-form" id="manualForm">
+          <label for="barcodeInput">Manual barcode</label>
+          <div class="input-row">
+            <input
+              id="barcodeInput"
+              name="barcode"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              pattern="[0-9]{6,14}"
+              placeholder="3017620422003"
+            >
+            <button class="button button-secondary" type="submit">Check</button>
+          </div>
+        </form>
       </section>
 
       <section class="panel history-panel" aria-labelledby="history-title">
