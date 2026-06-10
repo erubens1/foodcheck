@@ -31,7 +31,14 @@ For phone camera access, use the published HTTPS GitHub Pages URL. Local files a
 
 ## Data source
 
-Product data comes from the Open Food Facts product API. The app uses the available label, ingredient, allergen, trace, nutrition, Nutri-Score, NOVA, and ingredient-analysis fields. Missing or incomplete data is treated cautiously.
+Product data comes from a small client-side aggregator:
+
+- Open Food Facts is the primary source for labels, ingredients, allergens, traces, product images, Nutri-Score, NOVA, and ingredient-analysis fields.
+- USDA FoodData Central is used as a branded-food nutrition fallback when it has an exact UPC/GTIN match.
+
+Missing or incomplete data is treated cautiously. The app shows source status after each lookup so shoppers can see whether the result used one source, merged sources, or sparse data.
+
+The USDA lookup currently uses the public `DEMO_KEY`, which is fine for light testing but rate-limited. For a public app with more traffic, replace it with a tiny proxy such as a Cloudflare Worker so a real USDA API key is not exposed in GitHub Pages JavaScript.
 
 Low FODMAP and other gut-health checks are best-effort ingredient screens. They are not medical advice, certified low-FODMAP testing, or a substitute for package labels and clinician/dietitian guidance.
 
