@@ -493,6 +493,10 @@ h3 {
   grid-column: 2;
 }
 
+.challenge-panel {
+  grid-column: 2;
+}
+
 .segmented-control {
   display: inline-grid;
   grid-template-columns: repeat(2, minmax(64px, 1fr));
@@ -661,6 +665,146 @@ h3 {
   font-size: 0.78rem;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.challenge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+}
+
+.challenge-card {
+  display: grid;
+  gap: 8px;
+  align-content: space-between;
+  min-height: 156px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.challenge-card.active {
+  border-color: rgba(47, 102, 208, 0.55);
+  background: #eef4ff;
+}
+
+.challenge-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.challenge-chip {
+  width: max-content;
+  max-width: 100%;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 850;
+  padding: 4px 8px;
+}
+
+.challenge-progress {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--surface-strong);
+}
+
+.challenge-progress h3 {
+  font-size: 1.05rem;
+}
+
+.challenge-progress p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.streak-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.streak-board div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.streak-board span {
+  display: block;
+  color: var(--ink);
+  font-size: 1.65rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.streak-board p {
+  margin: 5px 0 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.progress-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dce3ec;
+}
+
+.progress-track span {
+  display: block;
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--green), var(--blue));
+  transition: width 180ms ease;
+}
+
+.challenge-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.share-card {
+  border-radius: 8px;
+  border: 1px solid #253149;
+  background:
+    linear-gradient(135deg, rgba(47, 102, 208, 0.16), rgba(22, 138, 95, 0.16)),
+    #172033;
+  color: #ffffff;
+  padding: 16px;
+}
+
+.share-card p {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.share-card #shareCardEyebrow {
+  margin: 0 0 6px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.share-card h3 {
+  color: #ffffff;
+  font-size: 1.2rem;
 }
 
 .product-summary {
@@ -901,6 +1045,7 @@ h3 {
   .preferences-panel,
   .result-panel,
   .copilot-panel,
+  .challenge-panel,
   .history-panel {
     grid-column: 1;
   }
@@ -946,6 +1091,11 @@ h3 {
   .shelf-metrics {
     justify-items: start;
     white-space: normal;
+  }
+
+  .streak-board,
+  .challenge-actions {
+    grid-template-columns: 1fr;
   }
 
   .result-card {

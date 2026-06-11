@@ -6,10 +6,41 @@ const USDA_API_KEY = "DEMO_KEY";
 const SAMPLE_BARCODE = "3017620422003";
 const STORAGE_KEYS = {
   selected: "foodlight:selectedProfiles",
-  history: "foodlight:history"
+  history: "foodlight:history",
+  challenges: "foodlight:challenges"
 };
 
 const defaultProfiles = ["general-health"];
+
+const challengeTemplates = [
+  {
+    id: "protein-30",
+    title: "30-day protein challenge",
+    durationDays: 30,
+    chip: "Build muscle",
+    description: "Hit a protein-forward choice each day.",
+    dailyGoal: "Choose a food with at least 10 g protein per 100 g, or log a protein-focused meal.",
+    sharePrompt: "I am building a protein streak with FoodCheck."
+  },
+  {
+    id: "mediterranean-30",
+    title: "Mediterranean diet challenge",
+    durationDays: 30,
+    chip: "Heart-smart",
+    description: "Stack days with fish, legumes, whole grains, vegetables, nuts, or olive oil.",
+    dailyGoal: "Pick one Mediterranean-style food or meal each day.",
+    sharePrompt: "I am building a Mediterranean eating streak with FoodCheck."
+  },
+  {
+    id: "reduce-sugar-30",
+    title: "Reduce sugar challenge",
+    durationDays: 30,
+    chip: "Lower sugar",
+    description: "Choose lower-sugar foods and dodge sneaky sweet picks.",
+    dailyGoal: "Choose an option with under 5 g sugar per 100 g, or skip a sugary item.",
+    sharePrompt: "I am reducing sugar one day at a time with FoodCheck."
+  }
+];
 
 const dom = {
   startScan: document.querySelector("#startScan"),
@@ -55,12 +86,29 @@ const dom = {
   clearShelf: document.querySelector("#clearShelf"),
   shelfList: document.querySelector("#shelfList"),
   shelfCopilotResults: document.querySelector("#shelfCopilotResults"),
+  challengeStatusPill: document.querySelector("#challengeStatusPill"),
+  challengeGrid: document.querySelector("#challengeGrid"),
+  challengeProgress: document.querySelector("#challengeProgress"),
+  activeChallengeLabel: document.querySelector("#activeChallengeLabel"),
+  activeChallengeName: document.querySelector("#activeChallengeName"),
+  activeChallengeDetail: document.querySelector("#activeChallengeDetail"),
+  challengeStreak: document.querySelector("#challengeStreak"),
+  challengeCompleted: document.querySelector("#challengeCompleted"),
+  challengeProgressBar: document.querySelector("#challengeProgressBar"),
+  completeChallengeToday: document.querySelector("#completeChallengeToday"),
+  shareChallenge: document.querySelector("#shareChallenge"),
+  shareCard: document.querySelector("#shareCard"),
+  shareCardTitle: document.querySelector("#shareCardTitle"),
+  shareCardStats: document.querySelector("#shareCardStats"),
+  shareCardNote: document.querySelector("#shareCardNote"),
+  challengeShareStatus: document.querySelector("#challengeShareStatus"),
   historyList: document.querySelector("#historyList")
 };
 
 const state = {
   selectedProfiles: new Set(loadJson(STORAGE_KEYS.selected, defaultProfiles)),
   history: loadJson(STORAGE_KEYS.history, []),
+  challenges: loadChallengeState(),
   activeProduct: null,
   shelfItems: [],
   scanner: {
@@ -265,6 +313,7 @@ init();
 function init() {
   renderProfiles();
   renderHistory();
+  renderChallenges();
   bindEvents();
   refreshActiveEvaluation();
   analyzeMenuText();
@@ -320,6 +369,8 @@ function bindEvents() {
     renderShelfList();
     renderShelfCopilot();
   });
+  dom.completeChallengeToday.addEventListener("click", completeTodayChallenge);
+  dom.shareChallenge.addEventListener("click", shareActiveChallenge);
 }
 
 async function startScanner() {
@@ -460,6 +511,7 @@ async function handleBarcode(code) {
     const evaluation = evaluateProduct(product);
     renderProductResult(product, evaluation);
     addHistory(product, evaluation);
+    renderChallenges();
     setStatus("Result ready.");
   } catch (error) {
     state.activeProduct = null;
@@ -1231,6 +1283,222 @@ function renderShelfCopilot() {
   }
 
   renderCopilotCards(dom.shelfCopilotResults, cards);
+}
+
+function renderChallenges() {
+  dom.challengeGrid.innerHTML = "";
+
+  challengeTemplates.forEach(template => {
+    const progress = getChallengeProgress(template.id);
+    const isActive = state.challenges.activeId === template.id;
+    const card = document.createElement("article");
+    card.className = `challenge-card${isActive ? " active" : ""}`;
+    card.innerHTML = `
+      <span class="challenge-chip">${escapeHtml(template.chip)}</span>
+      <div>
+        <h3>${escapeHtml(template.title)}</h3>
+        <p>${escapeHtml(template.description)}</p>
+      </div>
+    `;
+    const button = document.createElement("button");
+    button.className = `button ${isActive ? "button-primary" : "button-secondary"}`;
+    button.type = "button";
+    button.textContent = isActive ? "Active" : progress.completedDates.length ? "Resume" : "Join";
+    button.addEventListener("click", () => joinChallenge(template.id));
+    card.append(button);
+    dom.challengeGrid.append(card);
+  });
+
+  renderActiveChallenge();
+}
+
+function joinChallenge(challengeId) {
+  state.challenges.activeId = challengeId;
+  ensureChallengeProgress(challengeId);
+  saveChallengeState();
+  renderChallenges();
+}
+
+function renderActiveChallenge() {
+  const template = getActiveChallengeTemplate();
+  if (!template) {
+    dom.challengeStatusPill.textContent = "No challenge";
+    dom.challengeProgress.classList.add("hidden");
+    dom.shareCard.classList.add("hidden");
+    return;
+  }
+
+  const progress = getChallengeProgress(template.id);
+  const streak = calculateStreak(progress.completedDates);
+  const completed = progress.completedDates.length;
+  const percent = Math.min(100, Math.round((completed / template.durationDays) * 100));
+  const qualification = getChallengeQualification(template, state.activeProduct);
+  const completedToday = progress.completedDates.includes(todayKey());
+
+  dom.challengeStatusPill.textContent = `${streak} day streak`;
+  dom.challengeProgress.classList.remove("hidden");
+  dom.activeChallengeLabel.textContent = `${template.durationDays}-day challenge`;
+  dom.activeChallengeName.textContent = template.title;
+  dom.activeChallengeDetail.textContent = qualification.detail;
+  dom.challengeStreak.textContent = String(streak);
+  dom.challengeCompleted.textContent = `${completed}/${template.durationDays}`;
+  dom.challengeProgressBar.style.width = `${percent}%`;
+  dom.completeChallengeToday.disabled = completedToday;
+  dom.completeChallengeToday.textContent = completedToday
+    ? "Today complete"
+    : qualification.qualifies
+      ? "Complete with this scan"
+      : "Mark today complete";
+  renderShareCard(template, progress, qualification);
+}
+
+function completeTodayChallenge() {
+  const template = getActiveChallengeTemplate();
+  if (!template) {
+    setStatus("Join a challenge first.");
+    return;
+  }
+
+  const progress = getChallengeProgress(template.id);
+  const today = todayKey();
+  if (!progress.completedDates.includes(today)) {
+    progress.completedDates.push(today);
+    progress.completedDates.sort();
+  }
+  saveChallengeState();
+  renderChallenges();
+  setStatus("Challenge streak updated.");
+}
+
+async function shareActiveChallenge() {
+  const template = getActiveChallengeTemplate();
+  if (!template) {
+    setStatus("Join a challenge first.");
+    return;
+  }
+
+  const progress = getChallengeProgress(template.id);
+  const qualification = getChallengeQualification(template, state.activeProduct);
+  const text = buildChallengeShareText(template, progress, qualification);
+  renderShareCard(template, progress, qualification);
+  dom.shareCard.classList.remove("hidden");
+
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: template.title, text });
+      dom.challengeShareStatus.textContent = "Share sheet opened.";
+    } else if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      dom.challengeShareStatus.textContent = "Share text copied.";
+    } else {
+      dom.challengeShareStatus.textContent = text;
+    }
+  } catch {
+    dom.challengeShareStatus.textContent = text;
+  }
+}
+
+function renderShareCard(template, progress, qualification) {
+  const streak = calculateStreak(progress.completedDates);
+  const completed = progress.completedDates.length;
+  dom.shareCardTitle.textContent = template.title;
+  dom.shareCardStats.textContent = `${streak} day streak | ${completed}/${template.durationDays} days complete`;
+  dom.shareCardNote.textContent = qualification.qualifies
+    ? `Today's FoodCheck pick: ${qualification.detail}`
+    : template.sharePrompt;
+}
+
+function buildChallengeShareText(template, progress, qualification) {
+  const streak = calculateStreak(progress.completedDates);
+  const completed = progress.completedDates.length;
+  const scanLine = qualification.qualifies ? ` Today's pick: ${qualification.detail}` : "";
+  return `${template.sharePrompt} ${streak} day streak, ${completed}/${template.durationDays} days complete.${scanLine}`;
+}
+
+function getActiveChallengeTemplate() {
+  return challengeTemplates.find(template => template.id === state.challenges.activeId) || null;
+}
+
+function ensureChallengeProgress(challengeId) {
+  if (!state.challenges.progress[challengeId]) {
+    state.challenges.progress[challengeId] = {
+      joinedAt: todayKey(),
+      completedDates: []
+    };
+  }
+  return state.challenges.progress[challengeId];
+}
+
+function getChallengeProgress(challengeId) {
+  return ensureChallengeProgress(challengeId);
+}
+
+function getChallengeQualification(template, product) {
+  if (!product) {
+    return {
+      qualifies: false,
+      detail: `${template.dailyGoal} Scan a product or mark progress manually.`
+    };
+  }
+
+  const ctx = createContext(product);
+  const name = product.product_name || "This product";
+  const protein = numberOrNull(ctx.nutriments.proteins_100g);
+  const sugar = numberOrNull(ctx.nutriments.sugars_100g);
+
+  if (template.id === "protein-30") {
+    if (protein !== null && protein >= 10) {
+      return {
+        qualifies: true,
+        detail: `${name} counts with ${formatNumber(protein)} g protein per 100 g.`
+      };
+    }
+    return {
+      qualifies: false,
+      detail: `${name} does not look protein-forward yet. Aim for 10 g protein per 100 g or a protein-focused meal.`
+    };
+  }
+
+  if (template.id === "reduce-sugar-30") {
+    if (sugar !== null && sugar < 5) {
+      return {
+        qualifies: true,
+        detail: `${name} counts as lower sugar at ${formatNumber(sugar)} g per 100 g.`
+      };
+    }
+    return {
+      qualifies: false,
+      detail: sugar === null
+        ? `${name} is missing sugar data.`
+        : `${name} has ${formatNumber(sugar)} g sugar per 100 g, so it is not a lower-sugar pick.`
+    };
+  }
+
+  const signals = findSignals(ctx, mediterraneanChallengeTerms, 2);
+  if (signals.length) {
+    return {
+      qualifies: true,
+      detail: `${name} counts with Mediterranean-style signal: ${formatSignalList(signals)}.`
+    };
+  }
+
+  return {
+    qualifies: false,
+    detail: `${name} does not show a clear Mediterranean-style signal. Look for fish, legumes, vegetables, whole grains, nuts, or olive oil.`
+  };
+}
+
+function calculateStreak(completedDates) {
+  const completed = new Set(completedDates);
+  let streak = 0;
+  let cursor = new Date();
+
+  while (completed.has(dateKey(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
 }
 
 function shelfMetrics(item) {
@@ -2202,6 +2470,33 @@ const sportsSupplementTerms = [
   "ergogenic",
   "whey-protein"
 ];
+const mediterraneanChallengeTerms = [
+  "olive-oil",
+  "extra-virgin-olive-oil",
+  "salmon",
+  "tuna",
+  "sardine",
+  "mackerel",
+  "fish",
+  "lentil",
+  "chickpea",
+  "bean",
+  "hummus",
+  "whole-grain",
+  "wholegrain",
+  "oat",
+  "barley",
+  "quinoa",
+  "vegetable",
+  "tomato",
+  "spinach",
+  "eggplant",
+  "pepper",
+  "almond",
+  "walnut",
+  "pistachio",
+  "nut"
+];
 const veganRedTerms = [
   ...animalCautionTerms,
   "milk",
@@ -2601,6 +2896,35 @@ function escapeHtml(value) {
 
 function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function todayKey() {
+  return dateKey(new Date());
+}
+
+function dateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function loadChallengeState() {
+  const loaded = loadJson(STORAGE_KEYS.challenges, null);
+  if (!loaded || typeof loaded !== "object") {
+    return {
+      activeId: "",
+      progress: {}
+    };
+  }
+  return {
+    activeId: typeof loaded.activeId === "string" ? loaded.activeId : "",
+    progress: loaded.progress && typeof loaded.progress === "object" ? loaded.progress : {}
+  };
+}
+
+function saveChallengeState() {
+  saveJson(STORAGE_KEYS.challenges, state.challenges);
 }
 
 function loadJson(key, fallback) {

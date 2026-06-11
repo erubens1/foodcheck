@@ -9,6 +9,8 @@ The Nutrition Copilot panel supports two pre-decision workflows:
 - Menu mode accepts pasted menu text or a menu photo. Photo OCR runs in the browser, then menu items are ranked for the user's selected goals.
 - Shelf mode compares several products by barcode and optional price, then ranks best overall fit, highest protein, lowest sugar, and best value per gram of protein.
 
+The FoodCheck Challenge panel adds a local social layer with 30-day protein, Mediterranean diet, and reduce sugar challenges. Streak progress is stored in the browser, and users can share challenge progress through the native share sheet or copied text.
+
 ## Run locally
 
 ```sh

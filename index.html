@@ -140,6 +140,50 @@
         </div>
       </section>
 
+      <section class="panel challenge-panel" aria-labelledby="challenge-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Streaks & sharing</p>
+            <h2 id="challenge-title">FoodCheck Challenge</h2>
+          </div>
+          <div class="confidence-pill" id="challengeStatusPill">No challenge</div>
+        </div>
+
+        <div class="challenge-grid" id="challengeGrid"></div>
+
+        <div class="challenge-progress hidden" id="challengeProgress">
+          <div>
+            <p class="eyebrow" id="activeChallengeLabel">Active challenge</p>
+            <h3 id="activeChallengeName"></h3>
+            <p id="activeChallengeDetail"></p>
+          </div>
+          <div class="streak-board">
+            <div>
+              <span id="challengeStreak">0</span>
+              <p>day streak</p>
+            </div>
+            <div>
+              <span id="challengeCompleted">0</span>
+              <p>completed</p>
+            </div>
+          </div>
+          <div class="progress-track" aria-hidden="true">
+            <span id="challengeProgressBar"></span>
+          </div>
+          <div class="challenge-actions">
+            <button class="button button-primary" type="button" id="completeChallengeToday">Mark today complete</button>
+            <button class="button button-secondary" type="button" id="shareChallenge">Share progress</button>
+          </div>
+          <div class="share-card hidden" id="shareCard">
+            <p id="shareCardEyebrow">FoodCheck Challenge</p>
+            <h3 id="shareCardTitle"></h3>
+            <p id="shareCardStats"></p>
+            <p id="shareCardNote"></p>
+          </div>
+          <p class="fine-print" id="challengeShareStatus"></p>
+        </div>
+      </section>
+
       <section class="panel preferences-panel" aria-labelledby="profiles-title">
         <div class="panel-heading">
           <div>

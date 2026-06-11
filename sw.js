@@ -1,4 +1,4 @@
-const CACHE_NAME = "foodlight-v4";
+const CACHE_NAME = "foodlight-v5";
 const APP_SHELL = [
   "./",
   "./index.html",
