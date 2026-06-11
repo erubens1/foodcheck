@@ -13,13 +13,17 @@ The FoodCheck Challenge panel adds a local social layer with 30-day protein, Med
 
 ## Market reach
 
-Beachhead user: mobile-first grocery shoppers and restaurant diners managing a specific food decision, especially blood sugar, sodium, protein, gut health, religious restrictions, allergies, or personal preferences. The initial buyer is the consumer because the decision happens in the aisle, at the menu, or while comparing products.
+Smallest wedge: prediabetic grocery shoppers choosing packaged foods before purchase. The narrow first job is simple: scan one snack, cereal, drink, or takeout barcode and get a blood-sugar-aware red/yellow/green answer with a plain-English reason in a target workflow under 15 seconds.
+
+Beachhead user: a mobile-first shopper with prediabetes or diabetes risk who is already reading labels for sugar, carbs, fiber, and serving size. The initial buyer is the consumer because the decision is personal and happens in the aisle, at the menu, or while comparing products.
 
 Reachable community: people already checking labels, using diet or fitness apps, managing prediabetes/diabetes risk, watching sodium, training for athletic goals, or following restrictive diets. FoodCheck is reachable because it fits an existing repeated behavior: shoppers already pull out a phone in the store, search foods online, compare menus, or use barcode scanners and calorie trackers.
 
 Concrete scope signal: CDC data reports 40.1 million people in the U.S. with diabetes and 115.2 million U.S. adults with prediabetes, or more than 155 million people touched by the first blood-sugar-aware wedge before adding sodium, weight loss, gut health, religious, allergy, and athletic nutrition audiences.
 
-Why it can become larger: once FoodCheck proves it can help one urgent food-decision community choose faster, the same recommendation layer can expand across more goals and distribution partners. The buyer path can grow from consumers to nutrition coaches, gyms, employers, health plans, grocery retailers, and wellness programs that want lightweight food-decision support.
+Why it can become larger: the first wedge proves the hardest behavior change: a person uses FoodCheck before buying food, not after eating it. Once that habit works for blood-sugar decisions, the same recommendation layer can expand to sodium, protein, Low FODMAP, religious preferences, allergies, menu ranking, grocery shelf comparison, and challenge streaks. The buyer path can grow from consumers to nutrition coaches, gyms, employers, health plans, grocery retailers, and wellness programs that want lightweight food-decision support.
+
+Full platform vision: a pre-decision nutrition layer for grocery aisles, restaurant menus, and wellness programs. The wedge is not the whole platform; it is the smallest useful behavior that proves people will trust FoodCheck at the moment of choice.
 
 ## Judge-safe demo
 
