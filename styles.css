@@ -489,6 +489,180 @@ h3 {
   line-height: 1.45;
 }
 
+.copilot-panel {
+  grid-column: 2;
+}
+
+.segmented-control {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(64px, 1fr));
+  gap: 2px;
+  min-height: 34px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.segment {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 850;
+  padding: 6px 9px;
+}
+
+.segment.active {
+  background: #ffffff;
+  color: var(--ink);
+  box-shadow: 0 1px 5px rgba(23, 32, 51, 0.1);
+}
+
+.copilot-mode {
+  display: grid;
+  gap: 10px;
+}
+
+.copilot-input-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.file-picker {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.file-picker input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.textarea-label,
+.shelf-form label {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+#menuTextInput {
+  width: 100%;
+  min-height: 128px;
+  resize: vertical;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  color: var(--ink);
+  background: #ffffff;
+  line-height: 1.4;
+}
+
+.copilot-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.copilot-results {
+  display: grid;
+  gap: 8px;
+}
+
+.copilot-card {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px;
+  background: #ffffff;
+}
+
+.copilot-card.status-red .check-dot {
+  background: var(--red);
+}
+
+.copilot-card.status-yellow .check-dot {
+  background: var(--yellow);
+}
+
+.copilot-card.status-green .check-dot {
+  background: var(--green);
+}
+
+.copilot-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  line-height: 1.35;
+  font-size: 0.9rem;
+}
+
+.shelf-form {
+  display: grid;
+  gap: 7px;
+}
+
+.shelf-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(86px, 0.35fr) auto;
+  gap: 8px;
+}
+
+.shelf-input-row input {
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  color: var(--ink);
+  background: #ffffff;
+}
+
+.shelf-list {
+  display: grid;
+  gap: 8px;
+}
+
+.shelf-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+  padding: 10px;
+}
+
+.shelf-item p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.shelf-metrics {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .product-summary {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr);
@@ -726,6 +900,7 @@ h3 {
   .scanner-panel,
   .preferences-panel,
   .result-panel,
+  .copilot-panel,
   .history-panel {
     grid-column: 1;
   }
@@ -752,6 +927,25 @@ h3 {
 
   .input-row {
     grid-template-columns: 1fr;
+  }
+
+  .copilot-input-grid,
+  .shelf-input-row,
+  .shelf-item {
+    grid-template-columns: 1fr;
+  }
+
+  .copilot-actions {
+    justify-content: stretch;
+  }
+
+  .copilot-actions .button {
+    flex: 1 1 140px;
+  }
+
+  .shelf-metrics {
+    justify-items: start;
+    white-space: normal;
   }
 
   .result-card {

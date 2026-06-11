@@ -94,6 +94,52 @@
         </p>
       </section>
 
+      <section class="panel copilot-panel" aria-labelledby="copilot-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Before you choose</p>
+            <h2 id="copilot-title">Nutrition Copilot</h2>
+          </div>
+          <div class="segmented-control" role="tablist" aria-label="Copilot mode">
+            <button class="segment active" type="button" id="menuModeButton" aria-pressed="true">Menu</button>
+            <button class="segment" type="button" id="shelfModeButton" aria-pressed="false">Shelf</button>
+          </div>
+        </div>
+
+        <div class="copilot-mode" id="menuCopilotMode">
+          <div class="copilot-input-grid">
+            <label class="file-picker">
+              <span>Menu photo</span>
+              <input id="menuImageInput" type="file" accept="image/*" capture="environment">
+            </label>
+            <div class="copilot-actions">
+              <button class="button button-secondary" type="button" id="sampleMenu">Sample menu</button>
+              <button class="button button-primary" type="button" id="analyzeMenu">Analyze menu</button>
+            </div>
+          </div>
+          <label class="textarea-label" for="menuTextInput">Menu text</label>
+          <textarea id="menuTextInput" rows="7" placeholder="Grilled salmon with rice&#10;Burger combo with fries&#10;Chicken Caesar salad&#10;Pasta Alfredo"></textarea>
+          <div class="copilot-results" id="menuCopilotResults"></div>
+        </div>
+
+        <div class="copilot-mode hidden" id="shelfCopilotMode">
+          <form class="shelf-form" id="shelfForm">
+            <label for="shelfBarcodeInput">Shelf barcode</label>
+            <div class="shelf-input-row">
+              <input id="shelfBarcodeInput" type="text" inputmode="numeric" autocomplete="off" placeholder="3017620422003">
+              <input id="shelfPriceInput" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Price">
+              <button class="button button-secondary" type="submit">Add</button>
+            </div>
+          </form>
+          <div class="quick-actions">
+            <button class="text-button" type="button" id="sampleShelf">Sample shelf</button>
+            <button class="text-button" type="button" id="clearShelf">Clear shelf</button>
+          </div>
+          <div class="shelf-list" id="shelfList"></div>
+          <div class="copilot-results" id="shelfCopilotResults"></div>
+        </div>
+      </section>
+
       <section class="panel preferences-panel" aria-labelledby="profiles-title">
         <div class="panel-heading">
           <div>

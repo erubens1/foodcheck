@@ -4,6 +4,11 @@ FoodLight is a quick mobile web app for supermarket barcode checks. It scans or 
 
 The app also supports personalized goal checks for weight loss, muscle gain, prediabetes, high blood pressure, and marathon training. These recommendations are best-effort label screens based on available nutrition data, not a medical plan. The current heuristics emphasize calorie density, protein, fiber, sugar/carbohydrates, saturated fat, sodium, and training-fuel carbohydrate/protein balance.
 
+The Nutrition Copilot panel supports two pre-decision workflows:
+
+- Menu mode accepts pasted menu text or a menu photo. Photo OCR runs in the browser, then menu items are ranked for the user's selected goals.
+- Shelf mode compares several products by barcode and optional price, then ranks best overall fit, highest protein, lowest sugar, and best value per gram of protein.
+
 ## Run locally
 
 ```sh

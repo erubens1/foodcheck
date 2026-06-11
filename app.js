@@ -1,4 +1,5 @@
 const ZXING_CDN = "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
+const TESSERACT_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
 const OFF_PRODUCT_ENDPOINT = "https://world.openfoodfacts.org/api/v2/product/";
 const USDA_SEARCH_ENDPOINT = "https://api.nal.usda.gov/fdc/v1/foods/search";
 const USDA_API_KEY = "DEMO_KEY";
@@ -38,6 +39,22 @@ const dom = {
   sourceSummary: document.querySelector("#sourceSummary"),
   sourceList: document.querySelector("#sourceList"),
   checkList: document.querySelector("#checkList"),
+  menuModeButton: document.querySelector("#menuModeButton"),
+  shelfModeButton: document.querySelector("#shelfModeButton"),
+  menuCopilotMode: document.querySelector("#menuCopilotMode"),
+  shelfCopilotMode: document.querySelector("#shelfCopilotMode"),
+  menuImageInput: document.querySelector("#menuImageInput"),
+  sampleMenu: document.querySelector("#sampleMenu"),
+  analyzeMenu: document.querySelector("#analyzeMenu"),
+  menuTextInput: document.querySelector("#menuTextInput"),
+  menuCopilotResults: document.querySelector("#menuCopilotResults"),
+  shelfForm: document.querySelector("#shelfForm"),
+  shelfBarcodeInput: document.querySelector("#shelfBarcodeInput"),
+  shelfPriceInput: document.querySelector("#shelfPriceInput"),
+  sampleShelf: document.querySelector("#sampleShelf"),
+  clearShelf: document.querySelector("#clearShelf"),
+  shelfList: document.querySelector("#shelfList"),
+  shelfCopilotResults: document.querySelector("#shelfCopilotResults"),
   historyList: document.querySelector("#historyList")
 };
 
@@ -45,6 +62,7 @@ const state = {
   selectedProfiles: new Set(loadJson(STORAGE_KEYS.selected, defaultProfiles)),
   history: loadJson(STORAGE_KEYS.history, []),
   activeProduct: null,
+  shelfItems: [],
   scanner: {
     stream: null,
     detector: null,
@@ -249,6 +267,9 @@ function init() {
   renderHistory();
   bindEvents();
   refreshActiveEvaluation();
+  analyzeMenuText();
+  renderShelfList();
+  renderShelfCopilot();
 
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
@@ -278,6 +299,26 @@ function bindEvents() {
     saveSelectedProfiles();
     renderProfiles();
     refreshActiveEvaluation();
+    analyzeMenuText();
+    renderShelfCopilot();
+  });
+  dom.menuModeButton.addEventListener("click", () => setCopilotMode("menu"));
+  dom.shelfModeButton.addEventListener("click", () => setCopilotMode("shelf"));
+  dom.sampleMenu.addEventListener("click", () => {
+    dom.menuTextInput.value = sampleMenuText();
+    analyzeMenuText();
+  });
+  dom.analyzeMenu.addEventListener("click", analyzeMenuText);
+  dom.menuImageInput.addEventListener("change", handleMenuImage);
+  dom.shelfForm.addEventListener("submit", event => {
+    event.preventDefault();
+    addShelfBarcode();
+  });
+  dom.sampleShelf.addEventListener("click", addSampleShelf);
+  dom.clearShelf.addEventListener("click", () => {
+    state.shelfItems = [];
+    renderShelfList();
+    renderShelfCopilot();
   });
 }
 
@@ -688,6 +729,8 @@ function renderProfiles() {
         }
         saveSelectedProfiles();
         refreshActiveEvaluation();
+        analyzeMenuText({ quiet: true });
+        renderShelfCopilot();
       });
       const text = document.createElement("span");
       text.textContent = profile.label;
@@ -797,6 +840,484 @@ function renderSourceSummary(product) {
   } else {
     dom.sourceSummary.classList.add("hidden");
   }
+}
+
+function setCopilotMode(mode) {
+  const isMenu = mode === "menu";
+  dom.menuCopilotMode.classList.toggle("hidden", !isMenu);
+  dom.shelfCopilotMode.classList.toggle("hidden", isMenu);
+  dom.menuModeButton.classList.toggle("active", isMenu);
+  dom.shelfModeButton.classList.toggle("active", !isMenu);
+  dom.menuModeButton.setAttribute("aria-pressed", String(isMenu));
+  dom.shelfModeButton.setAttribute("aria-pressed", String(!isMenu));
+}
+
+async function handleMenuImage() {
+  const file = dom.menuImageInput.files?.[0];
+  if (!file) {
+    return;
+  }
+
+  setStatus("Reading menu photo...");
+  dom.analyzeMenu.disabled = true;
+
+  try {
+    const text = await recognizeMenuText(file);
+    dom.menuTextInput.value = text.trim();
+    analyzeMenuText();
+    setStatus("Menu photo analyzed.");
+  } catch (error) {
+    setStatus("Menu photo could not be read. Paste menu text instead.");
+    renderCopilotCards(dom.menuCopilotResults, [
+      {
+        status: "yellow",
+        title: "Photo OCR unavailable",
+        detail: readableLookupError(error) || "Paste menu text and tap Analyze menu."
+      }
+    ]);
+  } finally {
+    dom.analyzeMenu.disabled = false;
+  }
+}
+
+async function recognizeMenuText(file) {
+  await loadScriptOnce(TESSERACT_CDN, "Tesseract");
+  const result = await window.Tesseract.recognize(file, "eng");
+  return result?.data?.text || "";
+}
+
+function analyzeMenuText(options = {}) {
+  const text = dom.menuTextInput.value.trim();
+  if (!text) {
+    if (!options.quiet) {
+      renderCopilotCards(dom.menuCopilotResults, [
+        {
+          status: "yellow",
+          title: "Add a menu first",
+          detail: "Use a menu photo or paste a few menu lines to compare options before ordering."
+        }
+      ]);
+    }
+    return;
+  }
+
+  const items = parseMenuItems(text).map(item => ({
+    ...item,
+    estimate: estimateMenuItem(item.name)
+  }));
+
+  if (!items.length) {
+    renderCopilotCards(dom.menuCopilotResults, [
+      {
+        status: "yellow",
+        title: "No menu items found",
+        detail: "Put each menu item on its own line for the strongest comparison."
+      }
+    ]);
+    return;
+  }
+
+  const ranked = items
+    .map(item => ({
+      ...item,
+      fit: scoreMenuItemForGoals(item.estimate)
+    }))
+    .sort((a, b) => b.fit.score - a.fit.score);
+
+  const highestProtein = [...items].sort((a, b) => b.estimate.protein - a.estimate.protein)[0];
+  const lowestSugar = [...items].sort((a, b) => a.estimate.sugar - b.estimate.sugar)[0];
+  const calorieTarget = 650;
+  const highCalorie = [...items].sort((a, b) => b.estimate.calories - a.estimate.calories)[0];
+  const cards = [
+    {
+      status: ranked[0].fit.status,
+      title: `Best fit: ${ranked[0].name}`,
+      detail: ranked[0].fit.reason
+    },
+    {
+      status: "green",
+      title: `Highest protein: ${highestProtein.name}`,
+      detail: `Likely about ${highestProtein.estimate.protein} g protein. ${highestProtein.estimate.reason}`
+    },
+    {
+      status: lowestSugar.estimate.sugar <= 8 ? "green" : "yellow",
+      title: `Lowest sugar: ${lowestSugar.name}`,
+      detail: `Estimated around ${lowestSugar.estimate.sugar} g sugar before sauces or drinks.`
+    }
+  ];
+
+  if (highCalorie.estimate.calories > calorieTarget) {
+    const over = Math.round(((highCalorie.estimate.calories - calorieTarget) / calorieTarget) * 100);
+    cards.push({
+      status: over >= 60 ? "red" : "yellow",
+      title: `${highCalorie.name} exceeds target`,
+      detail: `Estimated ${highCalorie.estimate.calories} kcal, about ${over}% over a ${calorieTarget} kcal meal target.`
+    });
+  }
+
+  renderCopilotCards(dom.menuCopilotResults, cards);
+}
+
+function parseMenuItems(text) {
+  return text
+    .split(/\n|;/)
+    .map(line => line.replace(/\s+\$?\d+(?:\.\d{2})?\s*$/g, "").trim())
+    .filter(line => line.length >= 3)
+    .slice(0, 12)
+    .map(line => ({ name: titleCase(line) }));
+}
+
+function estimateMenuItem(name) {
+  const text = name.toLowerCase();
+  let calories = 520;
+  let protein = 15;
+  let carbs = 35;
+  let sugar = 6;
+  let sodium = 650;
+  let fat = 18;
+  const reasons = [];
+
+  const apply = (condition, changes, reason) => {
+    if (!condition) {
+      return;
+    }
+    calories += changes.calories || 0;
+    protein += changes.protein || 0;
+    carbs += changes.carbs || 0;
+    sugar += changes.sugar || 0;
+    sodium += changes.sodium || 0;
+    fat += changes.fat || 0;
+    reasons.push(reason);
+  };
+
+  apply(/grilled|baked|roasted/.test(text), { calories: -90, fat: -8 }, "grilled or baked prep");
+  apply(/salmon|tuna|fish/.test(text), { protein: 24, fat: 4, calories: 20 }, "fish protein");
+  apply(/chicken|turkey/.test(text), { protein: 22, fat: -4, calories: -20 }, "lean poultry");
+  apply(/steak|beef/.test(text), { protein: 24, fat: 10, calories: 120 }, "high-protein beef");
+  apply(/tofu|tempeh/.test(text), { protein: 12, fat: -4, calories: -40 }, "plant protein");
+  apply(/shrimp|prawn/.test(text), { protein: 18, fat: -8, calories: -70 }, "lean seafood");
+  apply(/bean|lentil|chickpea/.test(text), { protein: 7, carbs: 18, fiber: 5, calories: 70 }, "fiber-rich legumes");
+  apply(/burger|combo/.test(text), { calories: 420, protein: 12, carbs: 35, sodium: 700, fat: 22 }, "burger/combo meal");
+  apply(/fries|chips/.test(text), { calories: 330, carbs: 42, sodium: 300, fat: 18 }, "fried side");
+  apply(/fried|crispy/.test(text), { calories: 250, fat: 18, sodium: 350 }, "fried preparation");
+  apply(/alfredo|cream|creamy|cheese|mac/.test(text), { calories: 260, fat: 22, sodium: 350 }, "creamy or cheesy sauce");
+  apply(/pasta|noodle|rice|bowl|wrap|sandwich/.test(text), { carbs: 35, calories: 160 }, "carb base");
+  apply(/dessert|cake|cookie|brownie|ice cream|syrup/.test(text), { sugar: 36, carbs: 45, calories: 280 }, "dessert sugar");
+  apply(/soda|lemonade|sweet tea|shake/.test(text), { sugar: 38, carbs: 40, calories: 180 }, "sweet drink");
+  apply(/soup|ramen|deli|bacon|cured/.test(text), { sodium: 700 }, "higher-sodium item");
+  apply(/salad/.test(text), { calories: -130, carbs: -15, fat: -6 }, "lighter salad base");
+
+  return {
+    calories: Math.max(80, Math.round(calories)),
+    protein: Math.max(0, Math.round(protein)),
+    carbs: Math.max(0, Math.round(carbs)),
+    sugar: Math.max(0, Math.round(sugar)),
+    sodium: Math.max(0, Math.round(sodium)),
+    fat: Math.max(0, Math.round(fat)),
+    reason: reasons.slice(0, 2).join(", ") || "estimated from menu wording"
+  };
+}
+
+function scoreMenuItemForGoals(estimate) {
+  const selected = state.selectedProfiles;
+  let score = 50;
+  const reasons = [];
+
+  if (selected.has("goal-gain-muscle")) {
+    score += estimate.protein * 1.4;
+    reasons.push(`${estimate.protein} g estimated protein for muscle support`);
+  }
+  if (selected.has("goal-lose-20")) {
+    score += Math.max(0, 700 - estimate.calories) / 18;
+    if (estimate.calories > 700) {
+      score -= 20;
+    }
+    reasons.push(`${estimate.calories} kcal estimated for calorie-target fit`);
+  }
+  if (selected.has("prediabetic") || selected.has("low-sugar")) {
+    score -= estimate.sugar * 1.2;
+    score -= Math.max(0, estimate.carbs - 45) * 0.5;
+    reasons.push(`${estimate.sugar} g estimated sugar for blood-sugar awareness`);
+  }
+  if (selected.has("high-blood-pressure") || selected.has("low-sodium")) {
+    score -= Math.max(0, estimate.sodium - 600) / 35;
+    reasons.push(`${estimate.sodium} mg estimated sodium`);
+  }
+  if (selected.has("marathon-training")) {
+    score += estimate.carbs * 0.55 + estimate.protein * 0.35;
+    if (estimate.fat > 25) {
+      score -= 12;
+    }
+    reasons.push(`${estimate.carbs} g carbs and ${estimate.protein} g protein for training fuel`);
+  }
+  if (!reasons.length) {
+    score += estimate.protein - estimate.sugar - Math.max(0, estimate.calories - 650) / 30;
+    reasons.push("balanced against general protein, sugar, and calorie signals");
+  }
+
+  return {
+    score,
+    status: score >= 70 ? "green" : score >= 45 ? "yellow" : "red",
+    reason: reasons.slice(0, 2).join("; ")
+  };
+}
+
+async function addShelfBarcode() {
+  const code = cleanBarcode(dom.shelfBarcodeInput.value);
+  const price = numberOrNull(dom.shelfPriceInput.value);
+  if (!code) {
+    setStatus("Enter a shelf barcode.");
+    return;
+  }
+
+  setStatus(`Adding ${code} to shelf comparison...`);
+  try {
+    const product = await fetchProduct(code);
+    state.shelfItems = [
+      ...state.shelfItems.filter(item => item.product.code !== product.code),
+      {
+        id: `${product.code}-${Date.now()}`,
+        product,
+        price
+      }
+    ].slice(-6);
+    dom.shelfBarcodeInput.value = "";
+    dom.shelfPriceInput.value = "";
+    renderShelfList();
+    renderShelfCopilot();
+    setStatus("Shelf comparison updated.");
+  } catch (error) {
+    setStatus(error.message);
+  }
+}
+
+function addSampleShelf() {
+  state.shelfItems = [
+    createShelfDemoItem("Power Greek Yogurt", "demo-yogurt", 1.49, "150 g", {
+      "energy-kcal_100g": 90,
+      proteins_100g: 10,
+      carbohydrates_100g: 5,
+      sugars_100g: 4,
+      fiber_100g: 0,
+      fat_100g: 0.5,
+      sodium_100g: 0.045
+    }),
+    createShelfDemoItem("Protein Oat Bar", "demo-protein-bar", 2.49, "60 g", {
+      "energy-kcal_100g": 360,
+      proteins_100g: 30,
+      carbohydrates_100g: 32,
+      sugars_100g: 3,
+      fiber_100g: 10,
+      fat_100g: 9,
+      sodium_100g: 0.21
+    }),
+    createShelfDemoItem("Chocolate Hazelnut Spread", "demo-spread", 4.99, "350 g", {
+      "energy-kcal_100g": 539,
+      proteins_100g: 6,
+      carbohydrates_100g: 58,
+      sugars_100g: 56,
+      fiber_100g: 0,
+      fat_100g: 31,
+      sodium_100g: 0.04
+    })
+  ];
+  setCopilotMode("shelf");
+  renderShelfList();
+  renderShelfCopilot();
+}
+
+function createShelfDemoItem(name, code, price, quantity, nutriments) {
+  return {
+    id: code,
+    price,
+    product: {
+      code,
+      product_name: name,
+      brands: "Demo shelf",
+      quantity,
+      nutriments,
+      _sourceResults: [
+        sourceResult("demo", "Demo shelf", "found", "Seeded comparison product.")
+      ],
+      _dataSources: {
+        found: ["Demo shelf"],
+        nutrition: "Demo shelf"
+      }
+    }
+  };
+}
+
+function renderShelfList() {
+  dom.shelfList.innerHTML = "";
+  if (!state.shelfItems.length) {
+    dom.shelfList.innerHTML = `<p class="history-empty">No shelf products yet.</p>`;
+    return;
+  }
+
+  state.shelfItems.forEach(item => {
+    const metrics = shelfMetrics(item);
+    const row = document.createElement("article");
+    row.className = "shelf-item";
+    row.innerHTML = `
+      <div>
+        <h3>${escapeHtml(item.product.product_name || "Unnamed product")}</h3>
+        <p>${escapeHtml([item.product.brands, item.product.quantity, item.product.code].filter(Boolean).join(" | "))}</p>
+      </div>
+      <div class="shelf-metrics">
+        <span>${formatNumber(metrics.protein || 0)} g protein</span>
+        <span>${formatNumber(metrics.sugar || 0)} g sugar</span>
+        <span>${item.price !== null ? formatMoney(item.price) : "No price"}</span>
+      </div>
+    `;
+    dom.shelfList.append(row);
+  });
+}
+
+function renderShelfCopilot() {
+  if (!state.shelfItems.length) {
+    renderCopilotCards(dom.shelfCopilotResults, [
+      {
+        status: "yellow",
+        title: "Build a shelf set",
+        detail: "Add two or more barcodes, or use Sample shelf, to rank products by protein, sugar, and value."
+      }
+    ]);
+    return;
+  }
+
+  const items = state.shelfItems.map(item => ({
+    item,
+    metrics: shelfMetrics(item)
+  }));
+
+  const proteinBest = [...items].sort((a, b) => b.metrics.protein - a.metrics.protein)[0];
+  const sugarBest = [...items].sort((a, b) => a.metrics.sugar - b.metrics.sugar)[0];
+  const valueCandidates = items.filter(entry => entry.metrics.pricePerProtein !== null);
+  const valueBest = valueCandidates.sort((a, b) => a.metrics.pricePerProtein - b.metrics.pricePerProtein)[0];
+  const bestFit = [...items]
+    .map(entry => ({ ...entry, score: scoreShelfItemForGoals(entry.metrics) }))
+    .sort((a, b) => b.score.score - a.score.score)[0];
+
+  const cards = [
+    {
+      status: bestFit.score.status,
+      title: `Best for your goals: ${bestFit.item.product.product_name}`,
+      detail: bestFit.score.reason
+    },
+    {
+      status: "green",
+      title: `Best option for high protein: ${proteinBest.item.product.product_name}`,
+      detail: `${formatNumber(proteinBest.metrics.protein)} g protein per 100 g.`
+    },
+    {
+      status: sugarBest.metrics.sugar <= 5 ? "green" : "yellow",
+      title: `Lowest sugar: ${sugarBest.item.product.product_name}`,
+      detail: `${formatNumber(sugarBest.metrics.sugar)} g sugar per 100 g.`
+    }
+  ];
+
+  if (valueBest) {
+    cards.push({
+      status: "green",
+      title: `Best value per gram protein: ${valueBest.item.product.product_name}`,
+      detail: `${formatMoney(valueBest.metrics.pricePerProtein)} per gram of protein using package size and price.`
+    });
+  } else {
+    cards.push({
+      status: "yellow",
+      title: "Add prices for value ranking",
+      detail: "Enter price next to a barcode to calculate best value per gram of protein."
+    });
+  }
+
+  renderCopilotCards(dom.shelfCopilotResults, cards);
+}
+
+function shelfMetrics(item) {
+  const nutriments = item.product.nutriments || {};
+  const protein = numberOrNull(nutriments.proteins_100g) || 0;
+  const sugar = numberOrNull(nutriments.sugars_100g) || 0;
+  const carbs = numberOrNull(nutriments.carbohydrates_100g) || 0;
+  const energy = numberOrNull(nutriments["energy-kcal_100g"]) || 0;
+  const sodiumMg = numberOrNull(nutriments.sodium_100g) !== null ? numberOrNull(nutriments.sodium_100g) * 1000 : null;
+  const packageGrams = parseQuantityGrams(item.product.quantity);
+  const totalProtein = packageGrams && protein ? (protein * packageGrams) / 100 : null;
+  const pricePerProtein = item.price !== null && totalProtein ? item.price / totalProtein : null;
+  return {
+    protein,
+    sugar,
+    carbs,
+    energy,
+    sodiumMg,
+    packageGrams,
+    totalProtein,
+    pricePerProtein
+  };
+}
+
+function scoreShelfItemForGoals(metrics) {
+  const selected = state.selectedProfiles;
+  let score = 50;
+  const reasons = [];
+
+  if (selected.has("goal-gain-muscle")) {
+    score += metrics.protein * 1.5;
+    reasons.push(`${formatNumber(metrics.protein)} g protein per 100 g`);
+  }
+  if (selected.has("goal-lose-20")) {
+    score += Math.max(0, 250 - metrics.energy) / 8;
+    score += metrics.protein * 0.5;
+    reasons.push(`${formatNumber(metrics.energy)} kcal per 100 g`);
+  }
+  if (selected.has("prediabetic") || selected.has("low-sugar")) {
+    score -= metrics.sugar * 1.5;
+    reasons.push(`${formatNumber(metrics.sugar)} g sugar per 100 g`);
+  }
+  if ((selected.has("high-blood-pressure") || selected.has("low-sodium")) && metrics.sodiumMg !== null) {
+    score -= Math.max(0, metrics.sodiumMg - 120) / 20;
+    reasons.push(`${formatNumber(metrics.sodiumMg)} mg sodium per 100 g`);
+  }
+  if (selected.has("marathon-training")) {
+    score += metrics.carbs * 0.5 + metrics.protein * 0.4;
+    reasons.push(`${formatNumber(metrics.carbs)} g carbs and ${formatNumber(metrics.protein)} g protein`);
+  }
+  if (!reasons.length) {
+    score += metrics.protein - metrics.sugar - Math.max(0, metrics.energy - 300) / 18;
+    reasons.push("balanced by protein, sugar, and calories");
+  }
+
+  return {
+    score,
+    status: score >= 70 ? "green" : score >= 45 ? "yellow" : "red",
+    reason: reasons.slice(0, 2).join("; ")
+  };
+}
+
+function renderCopilotCards(container, cards) {
+  container.innerHTML = "";
+  cards.forEach(card => {
+    const item = document.createElement("article");
+    item.className = `copilot-card status-${card.status}`;
+    item.innerHTML = `
+      <span class="check-dot"></span>
+      <div>
+        <h3>${escapeHtml(card.title)}</h3>
+        <p>${escapeHtml(card.detail)}</p>
+      </div>
+    `;
+    container.append(item);
+  });
+}
+
+function sampleMenuText() {
+  return [
+    "Grilled salmon with rice",
+    "Burger combo with fries",
+    "Chicken Caesar salad",
+    "Pasta Alfredo",
+    "Tofu vegetable bowl",
+    "Chocolate milkshake"
+  ].join("\n");
 }
 
 function evaluateProduct(product) {
@@ -2004,6 +2525,49 @@ function numberOrNull(value) {
 
 function formatNumber(value) {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value);
+}
+
+function formatMoney(value) {
+  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(value);
+}
+
+function parseQuantityGrams(value) {
+  const text = String(value || "").toLowerCase();
+  const kg = text.match(/([\d.]+)\s*kg/);
+  if (kg) {
+    return Number(kg[1]) * 1000;
+  }
+  const grams = text.match(/([\d.]+)\s*g\b/);
+  if (grams) {
+    return Number(grams[1]);
+  }
+  const ounces = text.match(/([\d.]+)\s*(?:oz|ounce|ounces)/);
+  if (ounces) {
+    return Number(ounces[1]) * 28.3495;
+  }
+  return null;
+}
+
+function loadScriptOnce(src, globalName) {
+  if (globalName && window[globalName]) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Script failed to load.")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.addEventListener("load", () => resolve(), { once: true });
+    script.addEventListener("error", () => reject(new Error("Script failed to load.")), { once: true });
+    document.head.append(script);
+  });
 }
 
 function formatSignalList(items) {
