@@ -74,6 +74,12 @@ button {
   grid-column: 2;
 }
 
+.judge-demo-panel {
+  grid-column: 2;
+  border-color: rgba(47, 102, 208, 0.36);
+  background: linear-gradient(180deg, #ffffff, #f5f8ff);
+}
+
 .result-panel {
   grid-column: 2;
 }
@@ -359,6 +365,37 @@ h3 {
   color: var(--muted);
   font-size: 0.9rem;
   font-weight: 750;
+}
+
+.judge-demo-copy {
+  display: grid;
+  gap: 12px;
+}
+
+.judge-demo-copy p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.42;
+}
+
+.judge-demo-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.judge-demo-actions .button {
+  flex: 0 1 210px;
+}
+
+.judge-demo-status {
+  min-height: 38px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  padding: 9px 11px;
+  font-size: 0.88rem;
 }
 
 .profile-groups {
@@ -1042,6 +1079,7 @@ h3 {
   }
 
   .scanner-panel,
+  .judge-demo-panel,
   .preferences-panel,
   .result-panel,
   .copilot-panel,

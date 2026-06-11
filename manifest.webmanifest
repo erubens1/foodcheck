@@ -1,7 +1,7 @@
 {
-  "name": "FoodLight Scanner",
-  "short_name": "FoodLight",
-  "description": "Barcode-based dietary traffic lights for supermarket food.",
+  "name": "FoodCheck Nutrition Copilot",
+  "short_name": "FoodCheck",
+  "description": "Pre-decision nutrition guidance for supermarket and restaurant food.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f7f8fb",

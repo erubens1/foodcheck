@@ -4,6 +4,7 @@ const OFF_PRODUCT_ENDPOINT = "https://world.openfoodfacts.org/api/v2/product/";
 const USDA_SEARCH_ENDPOINT = "https://api.nal.usda.gov/fdc/v1/foods/search";
 const USDA_API_KEY = "DEMO_KEY";
 const SAMPLE_BARCODE = "3017620422003";
+const JUDGE_DEMO_BARCODE = "000000000001";
 const STORAGE_KEYS = {
   selected: "foodlight:selectedProfiles",
   history: "foodlight:history",
@@ -56,6 +57,8 @@ const dom = {
   barcodeInput: document.querySelector("#barcodeInput"),
   sampleProduct: document.querySelector("#sampleProduct"),
   clearHistory: document.querySelector("#clearHistory"),
+  runJudgeDemo: document.querySelector("#runJudgeDemo"),
+  judgeDemoStatus: document.querySelector("#judgeDemoStatus"),
   statusText: document.querySelector("#statusText"),
   profileGroups: document.querySelector("#profileGroups"),
   resetProfiles: document.querySelector("#resetProfiles"),
@@ -320,6 +323,10 @@ function init() {
   renderShelfList();
   renderShelfCopilot();
 
+  if (new URLSearchParams(window.location.search).get("demo") === "judge") {
+    window.setTimeout(runJudgeDemo, 0);
+  }
+
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
@@ -337,7 +344,8 @@ function bindEvents() {
     }
     handleBarcode(code);
   });
-  dom.sampleProduct.addEventListener("click", () => handleBarcode(SAMPLE_BARCODE));
+  dom.sampleProduct.addEventListener("click", () => handleBarcode(JUDGE_DEMO_BARCODE));
+  dom.runJudgeDemo.addEventListener("click", runJudgeDemo);
   dom.clearHistory.addEventListener("click", () => {
     state.history = [];
     saveJson(STORAGE_KEYS.history, state.history);
@@ -523,6 +531,10 @@ async function handleBarcode(code) {
 }
 
 async function fetchProduct(code) {
+  if (code === JUDGE_DEMO_BARCODE) {
+    return createJudgeDemoProduct();
+  }
+
   const sourceResults = await Promise.all([
     fetchOpenFoodFactsProduct(code),
     fetchUsdaProduct(code)
@@ -598,6 +610,49 @@ async function fetchJsonWithTimeout(url, timeoutMs = 12000) {
 
 function sourceResult(id, label, status, detail, product = null) {
   return { id, label, status, detail, product };
+}
+
+function createJudgeDemoProduct() {
+  const nutriments = {
+    "energy-kcal_100g": 160,
+    proteins_100g: 24,
+    carbohydrates_100g: 17,
+    sugars_100g: 2,
+    fiber_100g: 3.2,
+    fat_100g: 6,
+    "saturated-fat_100g": 1.1,
+    sodium_100g: 0.04,
+    salt_100g: 0.1
+  };
+
+  return {
+    code: JUDGE_DEMO_BARCODE,
+    product_name: "Judge Demo Protein Bowl",
+    generic_name: "Seeded high-protein meal",
+    brands: "FoodCheck demo",
+    quantity: "300 g",
+    labels: "High protein, low sugar",
+    labels_tags: ["en:high-protein"],
+    categories_tags: ["en:prepared-meals", "en:salmon", "en:rice"],
+    ingredients_tags: ["en:salmon", "en:brown-rice", "en:spinach", "en:olive-oil", "en:lemon"],
+    ingredients_text: "Salmon, brown rice, spinach, olive oil, lemon.",
+    ingredients_text_en: "Salmon, brown rice, spinach, olive oil, lemon.",
+    allergens_tags: ["en:fish"],
+    traces_tags: [],
+    additives_tags: [],
+    nutriments,
+    ingredients_analysis_tags: [],
+    _nutrimentSources: Object.fromEntries(Object.keys(nutriments).map(key => [key, "Seeded judge demo"])),
+    _sourceResults: [
+      sourceResult("demo", "Seeded judge demo", "found", "Local no-network product for verification.")
+    ],
+    _dataSources: {
+      found: ["Seeded judge demo"],
+      identity: "Seeded judge demo",
+      ingredients: "Seeded judge demo",
+      nutrition: "Seeded judge demo"
+    }
+  };
 }
 
 function readableLookupError(error) {
@@ -1176,6 +1231,38 @@ function addSampleShelf() {
   setCopilotMode("shelf");
   renderShelfList();
   renderShelfCopilot();
+}
+
+async function runJudgeDemo() {
+  state.selectedProfiles = new Set([
+    "general-health",
+    "goal-gain-muscle",
+    "prediabetic",
+    "low-sodium",
+    "low-fodmap"
+  ]);
+  saveSelectedProfiles();
+  renderProfiles();
+
+  await handleBarcode(JUDGE_DEMO_BARCODE);
+
+  dom.menuTextInput.value = sampleMenuText();
+  setCopilotMode("menu");
+  analyzeMenuText();
+
+  addSampleShelf();
+
+  state.challenges.activeId = "protein-30";
+  state.challenges.progress["protein-30"] = {
+    joinedAt: todayKey(),
+    completedDates: []
+  };
+  saveChallengeState();
+  renderChallenges();
+  completeTodayChallenge();
+
+  setStatus("Judge demo ready: seeded product, menu, shelf, and challenge results are visible.");
+  dom.judgeDemoStatus.innerHTML = "Demo complete: no auth, no camera, no third-party lookup required.";
 }
 
 function createShelfDemoItem(name, code, price, quantity, nutriments) {

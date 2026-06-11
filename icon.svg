@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="FoodLight">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="FoodCheck">
   <rect width="256" height="256" rx="36" fill="#f7f8fb"/>
   <rect x="72" y="28" width="112" height="200" rx="56" fill="#172033"/>
   <circle cx="128" cy="76" r="27" fill="#d8423a"/>

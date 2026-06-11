@@ -1,6 +1,6 @@
-# FoodLight Scanner
+# FoodCheck Nutrition Copilot
 
-FoodLight is a quick mobile web app for supermarket barcode checks. It scans or accepts a barcode, looks up the product in Open Food Facts, then returns a red/yellow/green result with reasons for selected health, gut health, athlete certification, religious, and personal dietary profiles.
+FoodCheck is a quick mobile web app for supermarket barcode checks. It scans or accepts a barcode, looks up the product in Open Food Facts, then returns a red/yellow/green result with reasons for selected health, gut health, athlete certification, religious, and personal dietary profiles.
 
 The app also supports personalized goal checks for weight loss, muscle gain, prediabetes, high blood pressure, and marathon training. These recommendations are best-effort label screens based on available nutrition data, not a medical plan. The current heuristics emphasize calorie density, protein, fiber, sugar/carbohydrates, saturated fat, sodium, and training-fuel carbohydrate/protein balance.
 
@@ -10,6 +10,38 @@ The Nutrition Copilot panel supports two pre-decision workflows:
 - Shelf mode compares several products by barcode and optional price, then ranks best overall fit, highest protein, lowest sugar, and best value per gram of protein.
 
 The FoodCheck Challenge panel adds a local social layer with 30-day protein, Mediterranean diet, and reduce sugar challenges. Streak progress is stored in the browser, and users can share challenge progress through the native share sheet or copied text.
+
+## Judge-safe demo
+
+Use this public no-auth path for automated judging:
+
+```text
+https://erubens1.github.io/foodcheck/?demo=judge
+```
+
+The `?demo=judge` path runs a seeded, no-network proof flow: it loads a demo barcode result, fills and analyzes a sample restaurant menu, builds a sample grocery shelf comparison, and completes one day of the 30-day protein challenge. It does not require login, camera permission, OAuth, payment, or a live third-party product lookup.
+
+The same flow is available in the app through the **Run judge demo** button.
+
+## Production-ready vs hackathon-grade
+
+Production-ready in this prototype:
+
+- Static mobile web app deployable on GitHub Pages with no backend required.
+- Public no-auth demo path for judging and demos.
+- Deterministic seeded demo data for barcode, menu, shelf, and challenge workflows.
+- In-browser profile matching for health goals, gut health, athlete certification signals, religious rules, and personal preferences.
+- Local browser storage for selected profiles, scan history, and challenge streaks.
+
+Hackathon-grade and needing production hardening:
+
+- Nutrition recommendations are rule-based screens, not medical advice or clinician-grade personalization.
+- Open Food Facts and USDA data can be incomplete; production should add stronger source coverage, freshness checks, and confidence scoring.
+- USDA currently uses the public `DEMO_KEY`; production should proxy a private key through a small backend or edge function.
+- Menu photo OCR is browser-based and best-effort; production should add better menu item parsing and portion estimation.
+- Certification checks look for label-data signals only; production should verify against official INFORMED and NSF product directories.
+
+Opportunity metric: CDC data reports 40.1 million people in the U.S. with diabetes and 115.2 million U.S. adults with prediabetes, creating a large audience that makes frequent food decisions where fast nutrition guidance matters.
 
 ## Run locally
 

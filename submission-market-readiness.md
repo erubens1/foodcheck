@@ -34,6 +34,16 @@ The current prototype has four measurable proof points:
 3. A shelf comparison ranks products by highest protein, lowest sugar, best fit, and best value per gram of protein.
 4. A FoodCheck Challenge flow lets users join a 30-day challenge, complete today, track a streak, and generate share text.
 
+For judge verification, the safe public path is:
+
+```text
+https://erubens1.github.io/foodcheck/?demo=judge
+```
+
+That path has no auth wall and does not depend on camera permission or live third-party product data. It runs seeded demo data for the barcode result, menu ranking, shelf comparison, and challenge streak.
+
+Production-ready pieces include the static mobile web app, public GitHub Pages deployment model, deterministic no-login demo path, browser-based profile matching, local scan/challenge storage, and seeded workflows that prove the core value. Hackathon-grade pieces include the rule-based recommendation heuristics, incomplete public nutrition data coverage, public USDA `DEMO_KEY`, best-effort browser OCR, and certification checks that still need official INFORMED and NSF directory verification before athlete-facing production use.
+
 Because this is a hackathon prototype, we are not claiming external customer traction yet. Instead, the first impact metrics are product-usage metrics we can validate in a pilot:
 
 - Time to nutrition decision: target under 15 seconds from scan/photo/text to recommendation.
@@ -51,6 +61,10 @@ FoodCheck targets mobile-first grocery shoppers and restaurant diners who alread
 This is a large market because the problem spans multiple health and wellness segments. CDC data reports 40.1 million people in the U.S. with diabetes and 115.2 million U.S. adults with prediabetes. CDC/NCHS also reports adult obesity prevalence of 40.3% in 2021-2023. These segments alone represent tens of millions of people who make daily food decisions where nutrition visibility matters.
 
 FoodCheck is differentiated from calorie counters because it is a pre-decision nutrition copilot, not just a post-meal log. It helps users decide before they buy or eat: scan a product, compare a grocery shelf, analyze a restaurant menu, or join a nutrition challenge. The prototype demonstrates four measurable workflows: barcode traffic-light recommendations, menu ranking, shelf comparison by protein/sugar/value, and 30-day challenge streaks.
+
+The judge-safe demo path is https://erubens1.github.io/foodcheck/?demo=judge. It is public, requires no login, and runs seeded data so judges can verify the barcode result, menu ranking, shelf comparison, and challenge streak without camera permission or live API reliability issues.
+
+Production-ready: static mobile web app, public GitHub Pages deploy, deterministic no-login demo path, browser-based profile checks, local history and challenge streak storage, and seeded proof workflows. Hackathon-grade: rule-based nutrition guidance, incomplete public nutrition data, public USDA `DEMO_KEY`, best-effort OCR, and athlete certification checks that need official directory verification before production use.
 
 We are not claiming external traction yet. Our first pilot metrics will be time to recommendation under 15 seconds, 10 food checks per active user per week, at least 3 compared products or menu items per shopping/restaurant session, 30% of users completing at least 7 challenge days in their first month, and 70% of pilot users reporting that FoodCheck changed or confirmed a food choice.
 
