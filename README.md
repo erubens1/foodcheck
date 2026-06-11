@@ -2,6 +2,8 @@
 
 FoodLight is a quick mobile web app for supermarket barcode checks. It scans or accepts a barcode, looks up the product in Open Food Facts, then returns a red/yellow/green result with reasons for selected health, gut health, athlete certification, religious, and personal dietary profiles.
 
+The app also supports personalized goal checks for weight loss, muscle gain, prediabetes, high blood pressure, and marathon training. These recommendations are best-effort label screens based on available nutrition data, not a medical plan. The current heuristics emphasize calorie density, protein, fiber, sugar/carbohydrates, saturated fat, sodium, and training-fuel carbohydrate/protein balance.
+
 ## Run locally
 
 ```sh

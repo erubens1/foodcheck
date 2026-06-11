@@ -515,6 +515,86 @@ h3 {
   font-size: 0.9rem;
 }
 
+.source-summary {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.source-summary-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.source-summary-heading h3 {
+  font-size: 0.95rem;
+}
+
+.source-summary-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.source-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+}
+
+.source-item {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-height: 44px;
+  border-radius: 8px;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  padding: 9px;
+}
+
+.source-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-top: 4px;
+  background: var(--muted);
+}
+
+.source-item.status-found .source-dot {
+  background: var(--green);
+}
+
+.source-item.status-missing .source-dot {
+  background: var(--yellow);
+}
+
+.source-item.status-error .source-dot {
+  background: var(--red);
+}
+
+.source-name {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.source-detail {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
 .hidden {
   display: none;
 }

@@ -1,5 +1,7 @@
 const ZXING_CDN = "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
 const OFF_PRODUCT_ENDPOINT = "https://world.openfoodfacts.org/api/v2/product/";
+const USDA_SEARCH_ENDPOINT = "https://api.nal.usda.gov/fdc/v1/foods/search";
+const USDA_API_KEY = "DEMO_KEY";
 const SAMPLE_BARCODE = "3017620422003";
 const STORAGE_KEYS = {
   selected: "foodlight:selectedProfiles",
@@ -33,6 +35,8 @@ const dom = {
   productImage: document.querySelector("#productImage"),
   productName: document.querySelector("#productName"),
   productMeta: document.querySelector("#productMeta"),
+  sourceSummary: document.querySelector("#sourceSummary"),
+  sourceList: document.querySelector("#sourceList"),
   checkList: document.querySelector("#checkList"),
   historyList: document.querySelector("#historyList")
 };
@@ -54,6 +58,36 @@ const state = {
 };
 
 const profiles = [
+  {
+    id: "goal-lose-20",
+    group: "Personalized goals",
+    label: "Lose 20 lbs",
+    evaluate: evaluateLoseWeightGoal
+  },
+  {
+    id: "goal-gain-muscle",
+    group: "Personalized goals",
+    label: "Gain muscle",
+    evaluate: evaluateGainMuscleGoal
+  },
+  {
+    id: "prediabetic",
+    group: "Personalized goals",
+    label: "Prediabetic",
+    evaluate: evaluatePrediabeticGoal
+  },
+  {
+    id: "high-blood-pressure",
+    group: "Personalized goals",
+    label: "High blood pressure",
+    evaluate: evaluateBloodPressureGoal
+  },
+  {
+    id: "marathon-training",
+    group: "Personalized goals",
+    label: "Marathon training",
+    evaluate: evaluateMarathonTrainingGoal
+  },
   {
     id: "general-health",
     group: "Health",
@@ -376,7 +410,7 @@ async function handleBarcode(code) {
   }
   state.scanner.busy = true;
   dom.barcodeInput.value = code;
-  setStatus(`Checking ${code}...`);
+  setStatus(`Checking ${code} across data sources...`);
   renderLoadingResult(code);
 
   try {
@@ -396,28 +430,235 @@ async function handleBarcode(code) {
 }
 
 async function fetchProduct(code) {
+  const sourceResults = await Promise.all([
+    fetchOpenFoodFactsProduct(code),
+    fetchUsdaProduct(code)
+  ]);
+  const openFoodFacts = sourceResults.find(result => result.id === "off")?.product || null;
+  const usda = sourceResults.find(result => result.id === "usda")?.product || null;
+
+  if (!openFoodFacts && !usda) {
+    throw new Error("Product not found in available data sources.");
+  }
+
+  return mergeProductData(code, openFoodFacts, usda, sourceResults);
+}
+
+async function fetchOpenFoodFactsProduct(code) {
   const url = `${OFF_PRODUCT_ENDPOINT}${encodeURIComponent(code)}.json?fields=${encodeURIComponent(productFields.join(","))}`;
+
+  try {
+    const payload = await fetchJsonWithTimeout(url);
+    if (payload.status !== 1 || !payload.product) {
+      return sourceResult("off", "Open Food Facts", "missing", "No matching product record.");
+    }
+    return sourceResult("off", "Open Food Facts", "found", "Ingredients, allergens, labels, and nutrition.", payload.product);
+  } catch (error) {
+    return sourceResult("off", "Open Food Facts", "error", readableLookupError(error));
+  }
+}
+
+async function fetchUsdaProduct(code) {
+  const url = new URL(USDA_SEARCH_ENDPOINT);
+  url.searchParams.set("api_key", USDA_API_KEY);
+  url.searchParams.set("query", code);
+  url.searchParams.set("dataType", "Branded");
+  url.searchParams.set("pageSize", "10");
+
+  try {
+    const payload = await fetchJsonWithTimeout(url.toString());
+    const food = pickUsdaBarcodeMatch(payload.foods || [], code);
+    if (!food) {
+      return sourceResult("usda", "USDA FoodData Central", "missing", "No exact GTIN/UPC match.");
+    }
+    return sourceResult(
+      "usda",
+      "USDA FoodData Central",
+      "found",
+      "Branded nutrition fallback.",
+      normalizeUsdaFood(food, code)
+    );
+  } catch (error) {
+    return sourceResult("usda", "USDA FoodData Central", "error", readableLookupError(error));
+  }
+}
+
+async function fetchJsonWithTimeout(url, timeoutMs = 12000) {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 12000);
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(url, { signal: controller.signal });
     if (!response.ok) {
-      throw new Error("Product lookup failed.");
+      throw new Error(`Lookup failed with status ${response.status}.`);
     }
-    const payload = await response.json();
-    if (payload.status !== 1 || !payload.product) {
-      throw new Error("Product not found in Open Food Facts.");
-    }
-    return payload.product;
+    return await response.json();
   } catch (error) {
     if (error.name === "AbortError") {
-      throw new Error("Product lookup timed out.");
+      throw new Error("Lookup timed out.");
     }
     throw error;
   } finally {
     window.clearTimeout(timeout);
   }
+}
+
+function sourceResult(id, label, status, detail, product = null) {
+  return { id, label, status, detail, product };
+}
+
+function readableLookupError(error) {
+  return error?.message || "Lookup failed.";
+}
+
+function mergeProductData(code, openFoodFacts, usda, sourceResults) {
+  const product = {
+    ...(usda || {}),
+    ...(openFoodFacts || {})
+  };
+
+  product.code = product.code || code;
+  product.product_name = firstFilled(openFoodFacts?.product_name, openFoodFacts?.generic_name, usda?.product_name, usda?.generic_name);
+  product.generic_name = firstFilled(openFoodFacts?.generic_name, usda?.generic_name);
+  product.brands = firstFilled(openFoodFacts?.brands, usda?.brands);
+  product.quantity = firstFilled(openFoodFacts?.quantity, usda?.quantity);
+  product.labels = firstFilled(openFoodFacts?.labels, usda?.labels);
+  product.ingredients_text = firstFilled(openFoodFacts?.ingredients_text, openFoodFacts?.ingredients_text_en, usda?.ingredients_text);
+  product.ingredients_text_en = firstFilled(openFoodFacts?.ingredients_text_en, openFoodFacts?.ingredients_text, usda?.ingredients_text_en);
+  product.categories_tags = mergeArrays(openFoodFacts?.categories_tags, usda?.categories_tags);
+  product.ingredients_tags = mergeArrays(openFoodFacts?.ingredients_tags, usda?.ingredients_tags);
+  product.labels_tags = mergeArrays(openFoodFacts?.labels_tags, usda?.labels_tags);
+  product.allergens_tags = mergeArrays(openFoodFacts?.allergens_tags, usda?.allergens_tags);
+  product.traces_tags = mergeArrays(openFoodFacts?.traces_tags, usda?.traces_tags);
+  product.additives_tags = mergeArrays(openFoodFacts?.additives_tags, usda?.additives_tags);
+  product.nutriments = mergeNutriments(openFoodFacts?.nutriments, usda?.nutriments);
+  product._nutrimentSources = buildNutrimentSources(openFoodFacts?.nutriments, usda?.nutriments);
+  product._sourceResults = sourceResults.map(({ id, label, status, detail }) => ({ id, label, status, detail }));
+  product._dataSources = {
+    found: sourceResults.filter(result => result.status === "found").map(result => result.label),
+    identity: firstFoundLabel(sourceResults, openFoodFacts, usda, "product_name"),
+    ingredients: openFoodFacts?.ingredients_text || openFoodFacts?.ingredients_text_en || openFoodFacts?.ingredients_tags?.length
+      ? "Open Food Facts"
+      : usda?.ingredients_text
+        ? "USDA FoodData Central"
+        : "",
+    nutrition: nutritionSourceLabel(product._nutrimentSources)
+  };
+
+  return product;
+}
+
+function normalizeUsdaFood(food, code) {
+  const nutriments = {};
+  const nutrientMap = {
+    "203": { key: "proteins_100g", divisor: 1 },
+    "204": { key: "fat_100g", divisor: 1 },
+    "205": { key: "carbohydrates_100g", divisor: 1 },
+    "208": { key: "energy-kcal_100g", divisor: 1 },
+    "269": { key: "sugars_100g", divisor: 1 },
+    "291": { key: "fiber_100g", divisor: 1 },
+    "307": { key: "sodium_100g", divisor: 1000 },
+    "539": { key: "added-sugars_100g", divisor: 1 },
+    "601": { key: "cholesterol_100g", divisor: 1000 },
+    "605": { key: "trans-fat_100g", divisor: 1 },
+    "606": { key: "saturated-fat_100g", divisor: 1 }
+  };
+
+  arrayifyRaw(food.foodNutrients).forEach(nutrient => {
+    const id = String(nutrient.nutrientId || nutrient.nutrientNumber || "");
+    const mapped = nutrientMap[id];
+    const value = numberOrNull(nutrient.value);
+    if (!mapped || value === null) {
+      return;
+    }
+    nutriments[mapped.key] = value / mapped.divisor;
+    if (mapped.key === "sodium_100g") {
+      nutriments.salt_100g = (value / 1000) * 2.5;
+    }
+  });
+
+  const brand = firstFilled(food.brandOwner, food.brandName);
+  const serving = food.servingSize && food.servingSizeUnit
+    ? `${food.servingSize} ${food.servingSizeUnit}`
+    : "";
+
+  return {
+    code,
+    product_name: titleCase(firstFilled(food.description, food.lowercaseDescription)),
+    generic_name: titleCase(firstFilled(food.marketCountry, food.brandedFoodCategory)),
+    brands: brand,
+    quantity: firstFilled(food.packageWeight, serving),
+    labels: "",
+    labels_tags: [],
+    categories_tags: food.brandedFoodCategory ? [`en:${slugify(food.brandedFoodCategory)}`] : [],
+    ingredients_tags: [],
+    ingredients_text: food.ingredients || "",
+    ingredients_text_en: food.ingredients || "",
+    allergens_tags: [],
+    traces_tags: [],
+    additives_tags: [],
+    nutriments,
+    ingredients_analysis_tags: []
+  };
+}
+
+function pickUsdaBarcodeMatch(foods, code) {
+  const variants = barcodeVariants(code);
+  return foods.find(food => variants.has(cleanBarcode(food.gtinUpc))) || null;
+}
+
+function barcodeVariants(code) {
+  const clean = cleanBarcode(code);
+  return new Set([
+    clean,
+    clean.replace(/^0+/, ""),
+    clean.padStart(12, "0"),
+    clean.padStart(13, "0"),
+    clean.padStart(14, "0")
+  ].filter(Boolean));
+}
+
+function mergeNutriments(openFoodFacts = {}, usda = {}) {
+  const merged = { ...usda, ...openFoodFacts };
+  Object.entries(usda || {}).forEach(([key, value]) => {
+    if (!hasUsableValue(merged[key]) && hasUsableValue(value)) {
+      merged[key] = value;
+    }
+  });
+  return merged;
+}
+
+function buildNutrimentSources(openFoodFacts = {}, usda = {}) {
+  const sources = {};
+  Object.entries(usda || {}).forEach(([key, value]) => {
+    if (hasUsableValue(value)) {
+      sources[key] = "USDA FoodData Central";
+    }
+  });
+  Object.entries(openFoodFacts || {}).forEach(([key, value]) => {
+    if (hasUsableValue(value)) {
+      sources[key] = "Open Food Facts";
+    }
+  });
+  return sources;
+}
+
+function nutritionSourceLabel(nutrimentSources) {
+  const sources = [...new Set(Object.values(nutrimentSources || {}))];
+  if (sources.length > 1) {
+    return "Open Food Facts + USDA FoodData Central";
+  }
+  return sources[0] || "";
+}
+
+function firstFoundLabel(sourceResults, openFoodFacts, usda, field) {
+  if (openFoodFacts?.[field]) {
+    return sourceResults.find(result => result.id === "off")?.label || "Open Food Facts";
+  }
+  if (usda?.[field]) {
+    return sourceResults.find(result => result.id === "usda")?.label || "USDA FoodData Central";
+  }
+  return "";
 }
 
 function renderProfiles() {
@@ -466,6 +707,7 @@ function renderLoadingResult(code) {
   dom.resultReason.textContent = `Barcode ${code}`;
   showCameraResult("idle", "Checking", "Looking up product", `Barcode ${code}`);
   dom.productSummary.classList.add("hidden");
+  dom.sourceSummary.classList.add("hidden");
   dom.checkList.innerHTML = "";
 }
 
@@ -476,6 +718,7 @@ function renderErrorResult(code, message) {
   dom.resultReason.textContent = `${message} Barcode ${code} can still be checked against the package label.`;
   showCameraResult("yellow", "Not great", "Not enough data", `${message} Check the package label.`);
   dom.productSummary.classList.add("hidden");
+  dom.sourceSummary.classList.add("hidden");
   dom.checkList.innerHTML = "";
 }
 
@@ -501,8 +744,9 @@ function renderProductResult(product, evaluation) {
     dom.productImage.alt = "";
   }
   dom.productName.textContent = product.product_name || product.generic_name || "Unnamed product";
-  dom.productMeta.textContent = [product.brands, product.quantity, product.code].filter(Boolean).join(" | ");
+  dom.productMeta.textContent = [product.brands, product.quantity, product.code, product._dataSources?.nutrition].filter(Boolean).join(" | ");
   dom.productSummary.classList.remove("hidden");
+  renderSourceSummary(product);
 
   dom.checkList.innerHTML = "";
   evaluation.checks.forEach(check => {
@@ -525,9 +769,34 @@ function refreshActiveEvaluation() {
     dom.confidencePill.textContent = "No scan";
     dom.resultReason.textContent = `${selectedCount} profile${selectedCount === 1 ? "" : "s"} selected.`;
     hideCameraResult();
+    dom.sourceSummary.classList.add("hidden");
     return;
   }
   renderProductResult(state.activeProduct, evaluateProduct(state.activeProduct));
+}
+
+function renderSourceSummary(product) {
+  const results = product._sourceResults || [];
+  dom.sourceList.innerHTML = "";
+
+  results.forEach(source => {
+    const item = document.createElement("article");
+    item.className = `source-item status-${source.status}`;
+    item.innerHTML = `
+      <span class="source-dot"></span>
+      <span>
+        <span class="source-name">${escapeHtml(source.label)}</span>
+        <span class="source-detail">${escapeHtml(source.detail)}</span>
+      </span>
+    `;
+    dom.sourceList.append(item);
+  });
+
+  if (results.length) {
+    dom.sourceSummary.classList.remove("hidden");
+  } else {
+    dom.sourceSummary.classList.add("hidden");
+  }
 }
 
 function evaluateProduct(product) {
@@ -602,6 +871,9 @@ function createContext(product) {
     text: ingredientText,
     hasIngredients: ingredients.length > 0 || Boolean(product.ingredients_text || product.ingredients_text_en),
     hasNutrition: Object.keys(nutriments).length > 0,
+    sourceCount: product._dataSources?.found?.length || 0,
+    dataSources: product._dataSources || {},
+    nutrimentSources: product._nutrimentSources || {},
     nutriments,
     nutriScore: String(product.nutriscore_grade || "").toLowerCase(),
     nova: Number(product.nova_group || 0)
@@ -715,6 +987,164 @@ function evaluateLowSugar(ctx) {
     return result("yellow", `Sugars are moderate at ${formatNumber(sugar)} g per 100 g.`);
   }
   return result("green", `Sugars are low at ${formatNumber(sugar)} g per 100 g.`);
+}
+
+function evaluateLoseWeightGoal(ctx) {
+  const energy = getEnergyKcalPer100g(ctx);
+  const sugar = numberOrNull(ctx.nutriments.sugars_100g);
+  const fiber = numberOrNull(ctx.nutriments.fiber_100g);
+  const protein = numberOrNull(ctx.nutriments.proteins_100g);
+  const satFat = numberOrNull(ctx.nutriments["saturated-fat_100g"]);
+
+  if (!ctx.hasNutrition || energy === null) {
+    return result("yellow", "Calories are missing, so weight-loss fit cannot be estimated from the label.");
+  }
+
+  const blockers = [];
+  if (energy >= 450) {
+    blockers.push(`very calorie dense at ${formatNumber(energy)} kcal per 100 g`);
+  }
+  if (sugar !== null && sugar >= 22.5) {
+    blockers.push(`high sugar at ${formatNumber(sugar)} g per 100 g`);
+  }
+  if (satFat !== null && satFat >= 5) {
+    blockers.push(`high saturated fat at ${formatNumber(satFat)} g per 100 g`);
+  }
+  if (blockers.length) {
+    return result("red", `For a lose-20-lbs goal, use sparingly: ${blockers.slice(0, 2).join("; ")}.`);
+  }
+
+  const supportsSatiety = (fiber !== null && fiber >= 3) || (protein !== null && protein >= 8);
+  if (energy <= 200 && supportsSatiety && (sugar === null || sugar < 5)) {
+    return result("green", "Good fit for a weight-loss goal: lower calorie density with protein or fiber for fullness.");
+  }
+
+  const cautions = [];
+  if (energy > 250) {
+    cautions.push(`${formatNumber(energy)} kcal per 100 g`);
+  }
+  if (!supportsSatiety) {
+    cautions.push("little protein or fiber for fullness");
+  }
+  if (sugar !== null && sugar >= 5) {
+    cautions.push(`moderate sugar at ${formatNumber(sugar)} g per 100 g`);
+  }
+
+  return result("yellow", `Can fit a weight-loss plan with portion control: ${cautions.slice(0, 2).join("; ") || "moderate nutrition profile"}.`);
+}
+
+function evaluateGainMuscleGoal(ctx) {
+  const protein = numberOrNull(ctx.nutriments.proteins_100g);
+  const energy = getEnergyKcalPer100g(ctx);
+  const sugar = numberOrNull(ctx.nutriments.sugars_100g);
+  const satFat = numberOrNull(ctx.nutriments["saturated-fat_100g"]);
+
+  if (protein === null) {
+    return result("yellow", "Protein data is missing, so muscle-building value cannot be estimated.");
+  }
+
+  if (protein >= 20 && (satFat === null || satFat < 5) && (sugar === null || sugar < 22.5)) {
+    return result("green", `Strong muscle-support option: ${formatNumber(protein)} g protein per 100 g.`);
+  }
+
+  if (protein >= 10) {
+    const caution = satFat !== null && satFat >= 5
+      ? ` Saturated fat is high at ${formatNumber(satFat)} g per 100 g.`
+      : "";
+    return result("yellow", `Useful protein source for gaining muscle at ${formatNumber(protein)} g per 100 g.${caution}`);
+  }
+
+  if ((energy !== null && energy >= 350) || (sugar !== null && sugar >= 22.5)) {
+    return result("red", `Poor muscle-building tradeoff: only ${formatNumber(protein)} g protein per 100 g with high calories or sugar.`);
+  }
+
+  return result("yellow", `Not a major muscle-building food: ${formatNumber(protein)} g protein per 100 g.`);
+}
+
+function evaluatePrediabeticGoal(ctx) {
+  const sugar = numberOrNull(ctx.nutriments.sugars_100g);
+  const addedSugar = numberOrNull(ctx.nutriments["added-sugars_100g"]);
+  const carbs = numberOrNull(ctx.nutriments.carbohydrates_100g);
+  const fiber = numberOrNull(ctx.nutriments.fiber_100g);
+
+  if (sugar === null && carbs === null) {
+    return result("yellow", "Sugar and carbohydrate data are missing, so blood-sugar impact is uncertain.");
+  }
+
+  if ((addedSugar !== null && addedSugar >= 10) || (sugar !== null && sugar >= 22.5) || (carbs !== null && carbs >= 60 && (fiber === null || fiber < 3))) {
+    return result("red", `Prediabetes caution: ${describeCarbSugar(sugar, carbs, fiber, addedSugar)}.`);
+  }
+
+  if ((sugar !== null && sugar >= 5) || (carbs !== null && carbs >= 30 && (fiber === null || fiber < 3))) {
+    return result("yellow", `May raise blood sugar quickly; pair with protein/fiber and watch portion size. ${describeCarbSugar(sugar, carbs, fiber, addedSugar)}.`);
+  }
+
+  if ((fiber !== null && fiber >= 3) && (sugar === null || sugar < 5)) {
+    return result("green", `Better fit for prediabetes: low sugar with ${formatNumber(fiber)} g fiber per 100 g.`);
+  }
+
+  return result("green", "Better fit for prediabetes based on the available sugar and carbohydrate data.");
+}
+
+function evaluateBloodPressureGoal(ctx) {
+  const sodiumMg = getSodiumMgPer100g(ctx);
+  const salt = getSaltPer100g(ctx);
+  const satFat = numberOrNull(ctx.nutriments["saturated-fat_100g"]);
+
+  if (sodiumMg === null && salt === null) {
+    return result("yellow", "Sodium data is missing, so blood-pressure fit cannot be confirmed.");
+  }
+
+  if ((salt !== null && salt >= 1.5) || (sodiumMg !== null && sodiumMg >= 600)) {
+    return result("red", `High-blood-pressure caution: high sodium at ${formatSodium(sodiumMg, salt)} per 100 g.`);
+  }
+
+  if ((salt !== null && salt >= 0.3) || (sodiumMg !== null && sodiumMg >= 120)) {
+    return result("yellow", `Moderate sodium at ${formatSodium(sodiumMg, salt)} per 100 g; compare with daily sodium goals.`);
+  }
+
+  if (satFat !== null && satFat >= 5) {
+    return result("yellow", `Sodium is low, but saturated fat is high at ${formatNumber(satFat)} g per 100 g.`);
+  }
+
+  return result("green", `Good blood-pressure fit: low sodium at ${formatSodium(sodiumMg, salt)} per 100 g.`);
+}
+
+function evaluateMarathonTrainingGoal(ctx) {
+  const carbs = numberOrNull(ctx.nutriments.carbohydrates_100g);
+  const protein = numberOrNull(ctx.nutriments.proteins_100g);
+  const fat = numberOrNull(ctx.nutriments.fat_100g);
+  const sugar = numberOrNull(ctx.nutriments.sugars_100g);
+  const sodiumMg = getSodiumMgPer100g(ctx);
+
+  if (hasAlcohol(ctx)) {
+    return result("red", "Not a good marathon-training choice around workouts because alcohol is listed.");
+  }
+
+  if (carbs === null && protein === null) {
+    return result("yellow", "Carbohydrate and protein data are missing, so training value is uncertain.");
+  }
+
+  if (carbs !== null && carbs >= 20 && (fat === null || fat <= 10)) {
+    const sodiumNote = sodiumMg !== null && sodiumMg >= 120
+      ? ` Includes ${formatNumber(sodiumMg)} mg sodium per 100 g, which may help replace sweat losses during long efforts.`
+      : "";
+    return result("green", `Good training-fuel fit: ${formatNumber(carbs)} g carbohydrates per 100 g with manageable fat.${sodiumNote}`);
+  }
+
+  if (protein !== null && protein >= 10 && carbs !== null && carbs >= 10) {
+    return result("green", `Good recovery-style option: ${formatNumber(protein)} g protein and ${formatNumber(carbs)} g carbs per 100 g.`);
+  }
+
+  if (carbs !== null && carbs >= 20 && fat !== null && fat > 10) {
+    return result("yellow", `Has useful carbs at ${formatNumber(carbs)} g per 100 g, but fat may slow digestion before runs.`);
+  }
+
+  if (sugar !== null && sugar >= 22.5 && (protein === null || protein < 5)) {
+    return result("yellow", `Fast sugar source at ${formatNumber(sugar)} g per 100 g; better for targeted fueling than everyday nutrition.`);
+  }
+
+  return result("yellow", "Not a strong marathon-training fuel or recovery option based on the available carb/protein data.");
 }
 
 function evaluateLowFodmap(ctx) {
@@ -1349,6 +1779,48 @@ function getSaltPer100g(ctx) {
   return sodium === null ? null : sodium * 2.5;
 }
 
+function getSodiumMgPer100g(ctx) {
+  const sodium = numberOrNull(ctx.nutriments.sodium_100g);
+  if (sodium !== null) {
+    return sodium * 1000;
+  }
+  const salt = numberOrNull(ctx.nutriments.salt_100g);
+  return salt === null ? null : (salt / 2.5) * 1000;
+}
+
+function getEnergyKcalPer100g(ctx) {
+  const kcal = numberOrNull(ctx.nutriments["energy-kcal_100g"]);
+  if (kcal !== null) {
+    return kcal;
+  }
+  const energyKj = numberOrNull(ctx.nutriments.energy_100g);
+  return energyKj === null ? null : energyKj / 4.184;
+}
+
+function describeCarbSugar(sugar, carbs, fiber, addedSugar) {
+  const parts = [];
+  if (sugar !== null) {
+    parts.push(`${formatNumber(sugar)} g sugars`);
+  }
+  if (addedSugar !== null) {
+    parts.push(`${formatNumber(addedSugar)} g added sugars`);
+  }
+  if (carbs !== null) {
+    parts.push(`${formatNumber(carbs)} g carbs`);
+  }
+  if (fiber !== null) {
+    parts.push(`${formatNumber(fiber)} g fiber`);
+  }
+  return `${parts.join(", ")} per 100 g`;
+}
+
+function formatSodium(sodiumMg, salt) {
+  if (sodiumMg !== null) {
+    return `${formatNumber(sodiumMg)} mg sodium`;
+  }
+  return `${formatNumber(salt)} g salt`;
+}
+
 function combineStatuses(statuses) {
   if (statuses.includes("red")) {
     return "red";
@@ -1378,6 +1850,9 @@ function statusLabel(status) {
 }
 
 function dataQualityLabel(ctx) {
+  if (ctx.sourceCount > 1 && ctx.hasIngredients && ctx.hasNutrition) {
+    return "Merged data";
+  }
   if (ctx.hasIngredients && ctx.hasNutrition) {
     return "Good data";
   }
@@ -1466,6 +1941,47 @@ function cleanBarcode(value) {
 
 function arrayify(value) {
   return Array.isArray(value) ? value.map(item => String(item).toLowerCase()) : [];
+}
+
+function arrayifyRaw(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function firstFilled(...values) {
+  return values.find(value => {
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+    return value !== undefined && value !== null && String(value).trim() !== "";
+  }) || "";
+}
+
+function mergeArrays(...arrays) {
+  const merged = [];
+  arrays.flatMap(array => Array.isArray(array) ? array : []).forEach(item => {
+    const value = String(item || "").toLowerCase();
+    if (value && !merged.includes(value)) {
+      merged.push(value);
+    }
+  });
+  return merged;
+}
+
+function hasUsableValue(value) {
+  return value !== undefined && value !== null && value !== "" && Number.isFinite(Number(value));
+}
+
+function titleCase(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\b[a-z]/g, char => char.toUpperCase());
+}
+
+function slugify(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function normalizedIncludes(value, term) {
