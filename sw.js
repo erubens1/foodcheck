@@ -1,9 +1,9 @@
-const CACHE_NAME = "foodcheck-v8";
+const CACHE_NAME = "foodcheck-v9";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css",
-  "./app.js",
+  "./styles.css?v=judge-20260611",
+  "./app.js?v=judge-20260611",
   "./manifest.webmanifest",
   "./icon.svg"
 ];

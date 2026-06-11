@@ -54,6 +54,14 @@ Because this is a hackathon prototype, we are not claiming external customer tra
 
 These metrics map directly to the product thesis: FoodCheck wins if it reduces food-decision friction enough that people use it repeatedly in real buying moments.
 
+## Judge Feedback Fix: Metric, Expansion, Demo
+
+Opportunity metric: CDC data reports 40.1 million people in the U.S. with diabetes and 115.2 million U.S. adults with prediabetes. That makes the initial blood-sugar-aware wedge large enough to matter before adding adjacent audiences such as people managing sodium, weight loss, gut health, religious restrictions, allergies, and athletic protein goals.
+
+Why it can become larger: FoodCheck starts with one urgent behavior: helping a shopper or diner decide whether a food fits their goal before they buy or eat. Once that wedge works, the same product can expand horizontally across more dietary needs and vertically into distribution partners. Consumers can use it for everyday grocery and restaurant decisions; nutrition coaches, gyms, employers, health plans, grocery retailers, and wellness programs can use the same lightweight decision layer to support their members without requiring a clinical backend.
+
+Judge-safe demo path: the submitted demo URL should be `https://erubens1.github.io/foodcheck/`, and the repository URL should be `https://github.com/erubens1/foodcheck`. For automated verification, judges can open `https://erubens1.github.io/foodcheck/?demo=judge` or click **Run judge demo** in the app. The demo requires no login, no OAuth, no payment, no camera permission, and no live third-party product lookup.
+
 ## Short Paste-Ready Version
 
 FoodCheck targets mobile-first grocery shoppers and restaurant diners who already have a nutrition reason to care but abandon traditional food tracking because it is too much work. The beachhead customer is a U.S. adult managing weight loss, muscle gain, prediabetes/diabetes risk, high blood pressure, athletic fueling, or dietary restrictions. The initial buyer is the consumer, with a path to B2B2C distribution through employers, health plans, nutrition coaches, gyms, grocery retailers, and wellness programs.
@@ -67,6 +75,8 @@ The judge-safe demo path is https://erubens1.github.io/foodcheck/?demo=judge. It
 Production-ready: static mobile web app, public GitHub Pages deploy, deterministic no-login demo path, browser-based profile checks, local history and challenge streak storage, and seeded proof workflows. Hackathon-grade: rule-based nutrition guidance, incomplete public nutrition data, public USDA `DEMO_KEY`, best-effort OCR, and athlete certification checks that need official directory verification before production use.
 
 We are not claiming external traction yet. Our first pilot metrics will be time to recommendation under 15 seconds, 10 food checks per active user per week, at least 3 compared products or menu items per shopping/restaurant session, 30% of users completing at least 7 challenge days in their first month, and 70% of pilot users reporting that FoodCheck changed or confirmed a food choice.
+
+This can become larger after the first wedge works because the core product is not limited to prediabetes or one diet. The same pre-decision food guidance can serve grocery shoppers, restaurant diners, athletes, people with gut-health needs, families managing dietary restrictions, nutrition coaches, employers, health plans, gyms, and retailers that want to help users make better food decisions before purchase.
 
 ## Sources
 

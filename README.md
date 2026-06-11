@@ -23,6 +23,18 @@ The `?demo=judge` path runs a seeded, no-network proof flow: it loads a demo bar
 
 The same flow is available in the app through the **Run judge demo** button.
 
+For judging forms, use the live app as the submitted demo URL:
+
+```text
+https://erubens1.github.io/foodcheck/
+```
+
+Use the GitHub repository only as the repository URL:
+
+```text
+https://github.com/erubens1/foodcheck
+```
+
 ## Production-ready vs hackathon-grade
 
 Production-ready in this prototype:
@@ -42,6 +54,8 @@ Hackathon-grade and needing production hardening:
 - Certification checks look for label-data signals only; production should verify against official INFORMED and NSF product directories.
 
 Opportunity metric: CDC data reports 40.1 million people in the U.S. with diabetes and 115.2 million U.S. adults with prediabetes, creating a large audience that makes frequent food decisions where fast nutrition guidance matters.
+
+Why this can become larger: FoodCheck starts with a narrow, urgent wedge: shoppers and diners who need quick nutrition decisions for blood sugar, sodium, protein, gut health, religious rules, or personal preferences. If that wedge works, the same decision layer can expand into broader consumer wellness, athlete fueling, grocery retail comparisons, restaurant menu guidance, nutrition coaching, employer wellness, health plans, and gym or training programs.
 
 ## Run locally
 
