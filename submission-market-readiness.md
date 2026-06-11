@@ -4,7 +4,7 @@
 
 FoodCheck targets health-conscious consumers who make frequent food decisions but do not want to manually log every meal. The beachhead customer is a mobile-first grocery shopper or restaurant diner who is actively managing one of five high-frequency nutrition goals: weight loss, muscle gain, prediabetes/diabetes risk, high blood pressure, or athletic performance.
 
-The initial market is U.S. adults who already have a reason to care about food labels but find existing nutrition tools too tedious. This includes people trying to lose weight, people tracking protein, people managing blood sugar or sodium, athletes comparing grocery products, and families trying to make healthier choices at restaurants and supermarkets. The product starts as a consumer app because the decision happens in the aisle, at the menu, or at the plate. Over time, the buyer can expand to B2B2C channels such as employers, health plans, nutrition coaches, gyms, grocery retailers, and wellness programs that want lightweight food-decision support without a heavy clinical backend.
+The initial market is U.S. adults who already have a reason to care about food labels but find existing nutrition tools too tedious. This includes people trying to lose weight, people tracking protein, people managing blood sugar or sodium, athletes comparing grocery products, and families trying to make healthier choices at restaurants and supermarkets. The product starts as a consumer app because the decision happens in the aisle, at the menu, or at the plate. The first buyer is the consumer; the broader buyer path expands to B2B2C channels such as employers, health plans, nutrition coaches, gyms, grocery retailers, and wellness programs that want lightweight food-decision support without a heavy clinical backend.
 
 The market is large enough for a venture-scale wedge because the nutrition problem is not limited to one niche diet. CDC data reports 40.1 million people in the U.S. with diabetes and 115.2 million U.S. adults with prediabetes. CDC/NCHS also reports adult obesity prevalence of 40.3% in 2021-2023. Those are only two health-driven segments; they do not include athletes, people pursuing weight-loss goals without a diagnosis, food-sensitive shoppers, or families using nutrition apps for general wellness.
 
@@ -13,6 +13,8 @@ FoodCheck’s beachhead is not “everyone who eats.” It is specifically peopl
 1. U.S. mobile users who check nutrition labels or use diet/fitness apps.
 2. Users managing weight, blood sugar, sodium, protein, or dietary restrictions.
 3. Grocery and restaurant shoppers who need a decision before they buy, not a calorie log after they eat.
+
+This market is reachable because FoodCheck fits behaviors the audience already has: scanning barcodes, checking labels, searching ingredients, comparing restaurant menus, and using phones while shopping. The product does not need users to start with a complex tracking habit; it meets them at the existing purchase decision.
 
 ## Differentiation & Investment Readiness
 
@@ -56,7 +58,11 @@ These metrics map directly to the product thesis: FoodCheck wins if it reduces f
 
 ## Judge Feedback Fix: Metric, Expansion, Demo
 
-Opportunity metric: CDC data reports 40.1 million people in the U.S. with diabetes and 115.2 million U.S. adults with prediabetes. That makes the initial blood-sugar-aware wedge large enough to matter before adding adjacent audiences such as people managing sodium, weight loss, gut health, religious restrictions, allergies, and athletic protein goals.
+Buyer, user, and community: the first user is a mobile-first grocery shopper or restaurant diner managing a real food constraint. The first buyer is the consumer because the decision is personal and immediate. The reachable community is people already checking labels, searching ingredients, using diet or fitness apps, managing prediabetes/diabetes risk, watching sodium, tracking protein, or following restrictive diets. Later buyers can include nutrition coaches, gyms, employers, health plans, grocery retailers, and wellness programs.
+
+Concrete scope signal: CDC data reports 40.1 million people in the U.S. with diabetes and 115.2 million U.S. adults with prediabetes, or more than 155 million people touched by the first blood-sugar-aware wedge. That does not include adjacent groups such as people managing sodium, weight loss, gut health, religious restrictions, allergies, and athletic protein goals.
+
+Reachability: FoodCheck meets users in an existing repeated behavior. The target user is already in a store or restaurant, already comparing labels or menu items, and already likely to use a phone. A lightweight mobile web app, QR link, barcode workflow, and no-login judge/demo path make the first consumer wedge easy to try. B2B2C partners are reachable because coaches, gyms, employers, health plans, grocery retailers, and wellness programs all have audiences trying to make better food choices without a clinical workflow.
 
 Why it can become larger: FoodCheck starts with one urgent behavior: helping a shopper or diner decide whether a food fits their goal before they buy or eat. Once that wedge works, the same product can expand horizontally across more dietary needs and vertically into distribution partners. Consumers can use it for everyday grocery and restaurant decisions; nutrition coaches, gyms, employers, health plans, grocery retailers, and wellness programs can use the same lightweight decision layer to support their members without requiring a clinical backend.
 
@@ -66,7 +72,7 @@ Judge-safe demo path: the submitted demo URL should be `https://erubens1.github.
 
 FoodCheck targets mobile-first grocery shoppers and restaurant diners who already have a nutrition reason to care but abandon traditional food tracking because it is too much work. The beachhead customer is a U.S. adult managing weight loss, muscle gain, prediabetes/diabetes risk, high blood pressure, athletic fueling, or dietary restrictions. The initial buyer is the consumer, with a path to B2B2C distribution through employers, health plans, nutrition coaches, gyms, grocery retailers, and wellness programs.
 
-This is a large market because the problem spans multiple health and wellness segments. CDC data reports 40.1 million people in the U.S. with diabetes and 115.2 million U.S. adults with prediabetes. CDC/NCHS also reports adult obesity prevalence of 40.3% in 2021-2023. These segments alone represent tens of millions of people who make daily food decisions where nutrition visibility matters.
+This is a large, reachable market because the problem spans multiple health and wellness segments and the target audience already uses phones while shopping, checking labels, searching ingredients, scanning products, and comparing restaurant menus. CDC data reports 40.1 million people in the U.S. with diabetes and 115.2 million U.S. adults with prediabetes, or more than 155 million people touched by the first blood-sugar-aware wedge. CDC/NCHS also reports adult obesity prevalence of 40.3% in 2021-2023. These segments alone represent tens of millions of people who make daily food decisions where nutrition visibility matters.
 
 FoodCheck is differentiated from calorie counters because it is a pre-decision nutrition copilot, not just a post-meal log. It helps users decide before they buy or eat: scan a product, compare a grocery shelf, analyze a restaurant menu, or join a nutrition challenge. The prototype demonstrates four measurable workflows: barcode traffic-light recommendations, menu ranking, shelf comparison by protein/sugar/value, and 30-day challenge streaks.
 

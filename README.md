@@ -11,6 +11,16 @@ The Nutrition Copilot panel supports two pre-decision workflows:
 
 The FoodCheck Challenge panel adds a local social layer with 30-day protein, Mediterranean diet, and reduce sugar challenges. Streak progress is stored in the browser, and users can share challenge progress through the native share sheet or copied text.
 
+## Market reach
+
+Beachhead user: mobile-first grocery shoppers and restaurant diners managing a specific food decision, especially blood sugar, sodium, protein, gut health, religious restrictions, allergies, or personal preferences. The initial buyer is the consumer because the decision happens in the aisle, at the menu, or while comparing products.
+
+Reachable community: people already checking labels, using diet or fitness apps, managing prediabetes/diabetes risk, watching sodium, training for athletic goals, or following restrictive diets. FoodCheck is reachable because it fits an existing repeated behavior: shoppers already pull out a phone in the store, search foods online, compare menus, or use barcode scanners and calorie trackers.
+
+Concrete scope signal: CDC data reports 40.1 million people in the U.S. with diabetes and 115.2 million U.S. adults with prediabetes, or more than 155 million people touched by the first blood-sugar-aware wedge before adding sodium, weight loss, gut health, religious, allergy, and athletic nutrition audiences.
+
+Why it can become larger: once FoodCheck proves it can help one urgent food-decision community choose faster, the same recommendation layer can expand across more goals and distribution partners. The buyer path can grow from consumers to nutrition coaches, gyms, employers, health plans, grocery retailers, and wellness programs that want lightweight food-decision support.
+
 ## Judge-safe demo
 
 Use this public no-auth path for automated judging:
@@ -53,9 +63,7 @@ Hackathon-grade and needing production hardening:
 - Menu photo OCR is browser-based and best-effort; production should add better menu item parsing and portion estimation.
 - Certification checks look for label-data signals only; production should verify against official INFORMED and NSF product directories.
 
-Opportunity metric: CDC data reports 40.1 million people in the U.S. with diabetes and 115.2 million U.S. adults with prediabetes, creating a large audience that makes frequent food decisions where fast nutrition guidance matters.
-
-Why this can become larger: FoodCheck starts with a narrow, urgent wedge: shoppers and diners who need quick nutrition decisions for blood sugar, sodium, protein, gut health, religious rules, or personal preferences. If that wedge works, the same decision layer can expand into broader consumer wellness, athlete fueling, grocery retail comparisons, restaurant menu guidance, nutrition coaching, employer wellness, health plans, and gym or training programs.
+Opportunity metric: CDC data reports 40.1 million people in the U.S. with diabetes and 115.2 million U.S. adults with prediabetes, creating a large audience that makes frequent food decisions where fast nutrition guidance matters. That is the first legible wedge; the product can grow into broader consumer wellness, athlete fueling, grocery retail comparisons, restaurant guidance, nutrition coaching, employer wellness, health plans, and gym programs.
 
 ## Run locally
 
